@@ -39,14 +39,14 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         ######################################################
         super().__init__(location, ortho_sequence, global_estimator, selected_directions)
         self._figure = plt.figure(constrained_layout=True)
-        self._gs = gridspec.GridSpec(5, 2, figure=self._figure)
+        self.kkeep = 3
+        self._gs = gridspec.GridSpec(2 + 2 * self.kkeep, 4, figure=self._figure)
 
     def run(self) -> None:
         try:
             super().run()
         except WavesEstimationError as excp:
             self.explore_results()
-            self.dump_figure()
             raise excp
         except SinogramError as excp:
             self.show_thumbnail()
@@ -60,8 +60,6 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
             self.print_correlation_matrix_error()
             self.dump_figure()
             raise excp
-        self.explore_results()
-        self.dump_figure()
 
     def show_thumbnail(self) -> None:
         """ Show first frame in sequence for a debug point
@@ -74,10 +72,15 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         subfigure.imshow(first_image, norm=Normalize(vmin=imin, vmax=imax))
         (l_1, l_2) = np.shape(first_image)
         radius = min(l_1, l_2) / 3
-        if 'direction' in self.metrics:
-            cartesian_dir_x = np.cos(np.deg2rad(self.metrics['direction']))
-            cartesian_dir_y = -np.sin(np.deg2rad(self.metrics['direction']))
-            subfigure.arrow(l_1 // 2, l_2 // 2, radius * cartesian_dir_x, radius * cartesian_dir_y)
+        if 'directions' in self.metrics:
+            for direction in self.metrics['directions']:
+                cartesian_dir_x = np.cos(np.deg2rad(direction))
+                cartesian_dir_y = -np.sin(np.deg2rad(direction))
+                subfigure.arrow(
+                    l_1 // 2,
+                    l_2 // 2,
+                    radius * cartesian_dir_x,
+                    radius * cartesian_dir_y)
         plt.title('Thumbnail')
 
     def show_correlation_matrix(self) -> None:
@@ -90,10 +93,15 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         subfigure.imshow(self.correlation_image.pixels, norm=Normalize(vmin=imin, vmax=imax))
         (l_1, l_2) = np.shape(self.correlation_image.pixels)
         radius = min(l_1, l_2) / 3
-        if 'direction' in self.metrics:
-            cartesian_dir_x = np.cos(np.deg2rad(self.metrics['direction']))
-            cartesian_dir_y = -np.sin(np.deg2rad(self.metrics['direction']))
-            subfigure.arrow(l_1 // 2, l_2 // 2, radius * cartesian_dir_x, radius * cartesian_dir_y)
+        if 'directions' in self.metrics:
+            for direction in self.metrics['directions']:
+                cartesian_dir_x = np.cos(np.deg2rad(direction))
+                cartesian_dir_y = -np.sin(np.deg2rad(direction))
+                subfigure.arrow(
+                    l_1 // 2,
+                    l_2 // 2,
+                    radius * cartesian_dir_x,
+                    radius * cartesian_dir_y)
         plt.title('Correlation matrix')
 
     def show_radon_matrix(self) -> None:
@@ -111,39 +119,35 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         l_1, _ = np.shape(radon_array)
         plt.plot(self.selected_directions, l_1 * self._metrics['variances'] /
                  np.max(self._metrics['variances']), 'r')
-        if 'direction' in self.metrics:
-            subfigure.arrow(self.metrics['direction'], 0, 0, l_1)
-            plt.annotate(f"{self.metrics['direction']} °",
-                         (self.metrics['direction'] + 5, 10), color='orange')
+        if 'directions' in self.metrics:
+            for direction in self.metrics['directions']:
+                subfigure.arrow(direction, 0, 0, l_1)
+                plt.annotate(f"{direction} °",
+                             (direction + 5, 10), color='orange')
         plt.title('Radon matrix')
 
     def show_sinogram(self) -> None:
         """ Show sinogram for a debug point
         """
         # Fourth diagram : Sinogram & wave length computation
-        subfigure = self._figure.add_subplot(self._gs[2, :2])
-        sinogram_max_var = self.metrics['sinogram_max_var']
-        x_axis = np.arange(-(len(sinogram_max_var) // 2), len(sinogram_max_var) // 2 + 1)
-        wave_length_zeros = self.metrics['wave_length_zeros']
-        max_indices = self.metrics['max_indices']
-        subfigure.plot(x_axis, sinogram_max_var)
-        min_limit_x = np.min(x_axis)
-        min_limit_y = np.min(sinogram_max_var)
-        subfigure.plot(x_axis[wave_length_zeros],
-                       sinogram_max_var[wave_length_zeros], 'ro')
-        subfigure.plot(x_axis[max_indices],
-                       sinogram_max_var[max_indices], 'go')
-
-        if self.bathymetry_estimations:
-            subfigure.annotate(
-                f'depth = {self.bathymetry_estimations[0].depth}',
-                (min_limit_x,
-                 min_limit_y),
-                color='orange')
+        list_infos_sinogram = self.metrics['list_infos_sinogram']
+        nb_sinograms = 0
+        for sinogram_max_var, wave_length_zeros, max_indices in list_infos_sinogram:
+            subfigure = self._figure.add_subplot(self._gs[2 + nb_sinograms, :2])
+            x_axis = np.arange(-(len(sinogram_max_var) // 2), len(sinogram_max_var) // 2 + 1)
+            if sinogram_max_var is not None:
+                subfigure.plot(x_axis, sinogram_max_var)
+            if wave_length_zeros is not None:
+                subfigure.plot(x_axis[wave_length_zeros],
+                               sinogram_max_var[wave_length_zeros], 'ro')
+            if max_indices is not None:
+                subfigure.plot(x_axis[max_indices],
+                               sinogram_max_var[max_indices], 'go')
+            nb_sinograms = nb_sinograms + 1
         plt.title('Sinogram')
 
     def show_failed_sinogram(self) -> None:
-        """ Show sinogram on which computaiton has failed
+        """ Show sinogram on which computation has failed
         """
         # Fourth diagram : Sinogram & wave length computation
         subfigure = self._figure.add_subplot(self._gs[2, :2])
@@ -155,25 +159,32 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         """ Show physical values for a debug point
         """
         # Fifth  diagram
-        subfigure = self._figure.add_subplot(self._gs[3, :2])
-        subfigure.axis('off')
+        nb_sinograms = 0
         direction_estimations = self.metrics['direction_estimations']
-        celerities = direction_estimations.get_attribute('celerity')
-        celerities = [round(celerity, 2) for celerity in celerities]
-        distances = direction_estimations.get_attribute('delta_position')
-        linerities = direction_estimations.get_attribute('linearity')
-        linerities = [round(linearity, 2) for linearity in linerities]
-        if self.bathymetry_estimations:
-            subfigure.annotate(f'wave_length = {self.bathymetry_estimations[0].wavelength} \n'
-                               f' dx = {distances} \n'
-                               f' c = {celerities} \n ckg = {linerities}\n'
-                               f' chosen_celerity = {self.bathymetry_estimations[0].celerity}',
-                               (0, 0), color='g')
-        else:
-            subfigure.annotate(f'wave_length = {direction_estimations[0].wavelength} \n'
-                               f' dx = {distances} \n'
-                               f' c = {celerities} \n ckg = {linerities}\n'
-                               f' No estimations have been found', (0, 0), color='g')
+        for direction_estimation in direction_estimations:
+            subfigure = self._figure.add_subplot(self._gs[2 + nb_sinograms, 3])
+            subfigure.axis('off')
+            celerities = direction_estimation.get_attribute('celerity')
+            celerities = [round(celerity, 2) for celerity in celerities]
+            distances = direction_estimation.get_attribute('delta_position')
+            linerities = direction_estimation.get_attribute('linearity')
+            linerities = [round(linearity, 2) for linearity in linerities]
+            direction_estimation.remove_unphysical_wave_fields()
+            direction_estimation.sort_on_attribute('linearity', reverse=False)
+            if direction_estimation:
+                estimation = direction_estimation[0]
+                if estimation.is_physical():
+                    subfigure.annotate(f'wave_length = {estimation.wavelength} \n'
+                                       f' dx = {distances} \n'
+                                       f' c = {celerities} \n ckg = {linerities}\n'
+                                       f' chosen_celerity = {estimation.celerity}',
+                                       (0, 0), color='g')
+                else:
+                    subfigure.annotate(f'wave_length = {estimation.wavelength} \n'
+                                       f' dx = {distances} \n'
+                                       f' c = {celerities} \n ckg = {linerities}\n'
+                                       f' No estimations have been found', (0, 0), color='g')
+            nb_sinograms = nb_sinograms + 1
 
     def print_correlation_matrix_error(self) -> None:
         """ Display a message for correlation matrix error in debug image
@@ -202,3 +213,4 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         self.show_radon_matrix()
         self.show_sinogram()
         self.show_values()
+        self.dump_figure()
