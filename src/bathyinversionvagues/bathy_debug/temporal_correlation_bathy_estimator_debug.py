@@ -39,8 +39,8 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         ######################################################
         super().__init__(location, ortho_sequence, global_estimator, selected_directions)
         self._figure = plt.figure(constrained_layout=True)
-        self.kkeep = 3
-        self._gs = gridspec.GridSpec(2 + 2 * self.kkeep, 4, figure=self._figure)
+        self._nb_estimation = 0
+        self._gs = None
 
     def run(self) -> None:
         try:
@@ -49,6 +49,7 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
             self.explore_results()
             raise excp
         except SinogramError as excp:
+            self.initialize_figure()
             self.show_thumbnail()
             self.show_correlation_matrix()
             self.show_radon_matrix()
@@ -56,10 +57,15 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
             self.dump_figure()
             raise excp
         except CorrelationError as excp:
+            self.initialize_figure()
             self.show_thumbnail()
             self.print_correlation_matrix_error()
             self.dump_figure()
             raise excp
+
+    def initialize_figure(self):
+        self._nb_estimation = len(self.metrics['direction_estimations'])
+        self._gs = gridspec.GridSpec(2 + 2 * self._nb_estimation, 4, figure=self._figure)
 
     def show_thumbnail(self) -> None:
         """ Show first frame in sequence for a debug point
@@ -208,6 +214,7 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
     def explore_results(self) -> None:
         """ Full routine for debugging point
         """
+        self.initialize_figure()
         self.show_thumbnail()
         self.show_correlation_matrix()
         self.show_radon_matrix()

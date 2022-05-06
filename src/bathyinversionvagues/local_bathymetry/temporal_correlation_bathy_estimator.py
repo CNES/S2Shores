@@ -108,7 +108,7 @@ class TemporalCorrelationBathyEstimator(LocalBathyEstimator):
                                     np.reshape(sampling_positions_y, (1, -1)))
         self._time_series = time_series[random_indexes, :]
 
-    def find_directions(self, radon_image: Sinograms) -> np.ndarray:
+    def find_directions(self, radon_image: 'Sinograms') -> np.ndarray:
         """ Find propagation directions as variance maxima
         """
         variances = radon_image.get_sinograms_variances()
@@ -116,7 +116,7 @@ class TemporalCorrelationBathyEstimator(LocalBathyEstimator):
             variances, prominence=self.local_estimator_params['PROMINENCE_MAX_PEAK'])
         directions = radon_image.directions[peaks]
         normalized_directions = np.mod(directions, 180)
-        _, unique_indices = np.unique(normalized_directions, return_index=False)
+        _, unique_indices = np.unique(normalized_directions, return_index=True)
         return directions[unique_indices], variances
 
     def run(self) -> None:
