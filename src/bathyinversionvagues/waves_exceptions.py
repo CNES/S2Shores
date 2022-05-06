@@ -34,13 +34,13 @@ class SequenceImagesError(WavesException):
     """
 
 
-class SinogramError(WavesException):
-    """ Exception raised when sinogram can not be computed
+class NotExploitableSinogram(WavesException):
+    """ Exception raised when sinogram can not be exploited
     """
 
 
-class CorrelationError(WavesException):
-    """ Exception raised when sinogram can not be computed
+class CorrelationComputationError(WavesException):
+    """ Exception raised when correlation can not be computed
     """
 
 

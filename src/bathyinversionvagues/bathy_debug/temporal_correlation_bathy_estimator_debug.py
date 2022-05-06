@@ -19,7 +19,7 @@ from matplotlib.colors import Normalize
 from ..local_bathymetry.temporal_correlation_bathy_estimator import TemporalCorrelationBathyEstimator
 from ..image.image_geometry_types import PointType
 from ..image.ortho_sequence import OrthoSequence
-from ..waves_exceptions import WavesEstimationError, SinogramError, CorrelationError
+from ..waves_exceptions import WavesEstimationError, NotExploitableSinogram, CorrelationComputationError
 
 from .local_bathy_estimator_debug import LocalBathyEstimatorDebug
 
@@ -48,7 +48,7 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         except WavesEstimationError as excp:
             self.explore_results()
             raise excp
-        except SinogramError as excp:
+        except NotExploitableSinogram as excp:
             self.initialize_figure()
             self.show_thumbnail()
             self.show_correlation_matrix()
@@ -56,7 +56,7 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
             self.show_failed_sinogram()
             self.dump_figure()
             raise excp
-        except CorrelationError as excp:
+        except CorrelationComputationError as excp:
             self.initialize_figure()
             self.show_thumbnail()
             self.print_correlation_matrix_error()

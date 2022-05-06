@@ -25,8 +25,8 @@ from ..image.image_geometry_types import PointType
 from ..image.ortho_sequence import OrthoSequence, FrameIdType
 from ..image_processing.waves_image import WavesImage, ImageProcessingFilters
 from ..image_processing.waves_radon import WavesRadon, linear_directions
-from ..waves_exceptions import WavesEstimationError, SinogramError
-from ..waves_exceptions import CorrelationError, SequenceImagesError
+from ..waves_exceptions import WavesEstimationError, NotExploitableSinogram
+from ..waves_exceptions import CorrelationComputationError, SequenceImagesError
 from ..image_processing.waves_sinogram import SignalProcessingFilters
 
 from .local_bathy_estimator import LocalBathyEstimator
@@ -230,7 +230,7 @@ class TemporalCorrelationBathyEstimator(LocalBathyEstimator):
         transformation
 
         :return: correlation matrix used for temporal reconstruction
-        :raises CorrelationError:  when correlation matrix can not be computed
+        :raises CorrelationComputationError:  when correlation matrix can not be computed
         :raises SequenceImagesError: when the time series is not defined
         """
         if self._correlation_matrix is None:
@@ -240,7 +240,7 @@ class TemporalCorrelationBathyEstimator(LocalBathyEstimator):
                 self._correlation_matrix = cross_correlation(self._time_series[:, self.nb_lags:],
                                                              self._time_series[:, :-self.nb_lags])
             except ValueError as excp:
-                raise CorrelationError(
+                raise CorrelationComputationError(
                     'Cross correlation can not be computed because of standard deviation of 0') from excp
         return self._correlation_matrix
 
@@ -273,14 +273,14 @@ class TemporalCorrelationBathyEstimator(LocalBathyEstimator):
         """ Wavelength computation (in meter)
         :param sinogram : sinogram used to compute wave length
         :returns: wave length
-        :raises SinogramError: if wave length can not be computed from sinogram
+        :raises NotExploitableSinogram: if wave length can not be computed from sinogram
         """
         min_wavelength = wavelength_offshore(self.global_estimator.waves_period_min, self.gravity)
         try:
             period, wave_length_zeros = find_period_from_zeros(
                 sinogram, int(min_wavelength / self.spatial_resolution))
         except ValueError as excp:
-            raise SinogramError('Wave length can not be computed from sinogram') from excp
+            raise NotExploitableSinogram('Wave length can not be computed from sinogram') from excp
         wave_length = period * self.spatial_resolution
 
         if self.debug_sample:
