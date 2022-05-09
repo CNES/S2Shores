@@ -8,7 +8,7 @@
 :created: 18/06/2021
 """
 from copy import deepcopy
-from typing import Optional, Tuple, TYPE_CHECKING  # @NoMove
+from typing import Optional, Tuple, List, TYPE_CHECKING  # @NoMove
 
 
 import pandas
@@ -59,6 +59,7 @@ class TemporalCorrelationBathyEstimator(LocalBathyEstimator):
         self._distances: Optional[np.ndarray] = None
         self._sampling_positions: Optional[Tuple[np.ndarray, np.ndarray]] = None
         self._time_series: Optional[np.ndarray] = None
+        self._tmp_infos_sinogram: List[Optional[np.ndarray]] = [None, None, None]
 
         # Filters
         self.correlation_image_filters: ImageProcessingFilters = [(detrend, []), (
@@ -108,13 +109,16 @@ class TemporalCorrelationBathyEstimator(LocalBathyEstimator):
                                     np.reshape(sampling_positions_y, (1, -1)))
         self._time_series = time_series[random_indexes, :]
 
-    def find_directions(self, radon_image: 'Sinograms') -> np.ndarray:
+    def find_directions(self, radon_image: 'Sinograms') -> Tuple[np.ndarray, np.ndarray]:
         """ Find propagation directions as variance maxima
         """
         variances = radon_image.get_sinograms_variances()
-        peaks, _ = find_peaks(
-            variances, prominence=self.local_estimator_params['PROMINENCE_MAX_PEAK'])
-        directions = radon_image.directions[peaks]
+        peaks, properties = find_peaks(variances, prominence=1)
+        properties = properties['prominences']
+        normalized_prominences = properties / np.max(properties)
+        tuning_parameters = self.local_estimator_params['TUNING']
+        directions = radon_image.directions[peaks[normalized_prominences >
+                                                  tuning_parameters['NORMALIZED_PROMINENCE_RADON_MATRIX']]]
         normalized_directions = np.mod(directions, 180)
         _, unique_indices = np.unique(normalized_directions, return_index=True)
         return directions[unique_indices], variances
@@ -124,7 +128,7 @@ class TemporalCorrelationBathyEstimator(LocalBathyEstimator):
         """
         if self.debug_sample:
             self.metrics['list_infos_sinogram'] = []
-            self.metrics['direction_estimations'] = []
+            self.metrics['pointed_estimations'] = []
             self._tmp_infos_sinogram = [None, None, None]
         empty_bathymetry_estimations = deepcopy(self.bathymetry_estimations)
         self.create_sequence_time_series()
@@ -151,21 +155,21 @@ class TemporalCorrelationBathyEstimator(LocalBathyEstimator):
                 self.metrics['list_infos_sinogram'].append(self._tmp_infos_sinogram)
                 self._tmp_infos_sinogram = [None, None, None]
 
-            # Keep in mind that direction_estimations stores several estimations for a same
+            # Keep in mind that pointed_estimations stores several estimations for a same
             # direction and only the best of them should be added in the final list
-            # direction_estimations is empty at this point
-            direction_estimations = deepcopy(empty_bathymetry_estimations)
+            # pointed_estimations is empty at this point
+            pointed_estimations = deepcopy(empty_bathymetry_estimations)
             for distance in distances:
                 estimation = self.create_bathymetry_estimation(direction_propagation,
                                                                wavelength)
                 estimation.delta_position = distance
-                direction_estimations.append(estimation)
+                pointed_estimations.append(estimation)
             if self.debug_sample:
-                self.metrics['direction_estimations'].append(deepcopy(direction_estimations))
-            direction_estimations.remove_unphysical_wave_fields()
-            direction_estimations.sort_on_attribute('linearity', reverse=False)
-            if direction_estimations:
-                best_estimation = direction_estimations[0]
+                self.metrics['pointed_estimations'].append(deepcopy(pointed_estimations))
+            pointed_estimations.remove_unphysical_wave_fields()
+            pointed_estimations.sort_on_attribute('linearity', reverse=False)
+            if pointed_estimations:
+                best_estimation = pointed_estimations[0]
                 self.bathymetry_estimations.append(best_estimation)
         if not self.bathymetry_estimations:
             raise WavesEstimationError('No correct wave fied estimations have been found')

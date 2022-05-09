@@ -10,6 +10,7 @@
 
 import os
 import numpy as np
+from copy import deepcopy
 from typing import Optional, TYPE_CHECKING
 
 from matplotlib import gridspec
@@ -65,7 +66,7 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
 
     def initialize_figure(self):
         self._nb_estimation = len(self.metrics['direction_estimations'])
-        self._gs = gridspec.GridSpec(2 + 2 * self._nb_estimation, 4, figure=self._figure)
+        self._gs = gridspec.GridSpec(2 + 2 * self._nb_estimation, 3, figure=self._figure)
 
     def show_thumbnail(self) -> None:
         """ Show first frame in sequence for a debug point
@@ -168,29 +169,34 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         nb_sinograms = 0
         direction_estimations = self.metrics['direction_estimations']
         for direction_estimation in direction_estimations:
-            subfigure = self._figure.add_subplot(self._gs[2 + nb_sinograms, 3])
-            subfigure.axis('off')
-            celerities = direction_estimation.get_attribute('celerity')
-            celerities = [round(celerity, 2) for celerity in celerities]
-            distances = direction_estimation.get_attribute('delta_position')
-            linerities = direction_estimation.get_attribute('linearity')
-            linerities = [round(linearity, 2) for linearity in linerities]
-            direction_estimation.remove_unphysical_wave_fields()
-            direction_estimation.sort_on_attribute('linearity', reverse=False)
             if direction_estimation:
-                estimation = direction_estimation[0]
-                if estimation.is_physical():
-                    subfigure.annotate(f'wave_length = {estimation.wavelength} \n'
+                subfigure = self._figure.add_subplot(self._gs[2 + nb_sinograms, 2])
+                subfigure.axis('off')
+                celerities = direction_estimation.get_attribute('celerity')
+                celerities = [round(celerity, 2) for celerity in celerities]
+                distances = direction_estimation.get_attribute('delta_position')
+                linerities = direction_estimation.get_attribute('linearity')
+                linerities = [round(linearity, 2) for linearity in linerities]
+                direction_estimation_tmp = deepcopy(direction_estimation)
+                direction_estimation.remove_unphysical_wave_fields()
+                direction_estimation.sort_on_attribute('linearity', reverse=False)
+                if direction_estimation:
+                    estimation = direction_estimation[0]
+                    subfigure.annotate(f'direction = {estimation.direction}\n'
+                                       f'wave_length = {estimation.wavelength}\n'
                                        f' dx = {distances} \n'
                                        f' c = {celerities} \n ckg = {linerities}\n'
-                                       f' chosen_celerity = {estimation.celerity}',
+                                       f' chosen_celerity = {estimation.celerity}\n'
+                                       f' depth = {estimation.depth}',
                                        (0, 0), color='g')
                 else:
-                    subfigure.annotate(f'wave_length = {estimation.wavelength} \n'
+                    estimation = direction_estimation_tmp[0]
+                    subfigure.annotate(f'direction = {estimation.direction}\n'
+                                       f'wave_length = {estimation.wavelength} \n'
                                        f' dx = {distances} \n'
                                        f' c = {celerities} \n ckg = {linerities}\n'
                                        f' No estimations have been found', (0, 0), color='g')
-            nb_sinograms = nb_sinograms + 1
+                nb_sinograms = nb_sinograms + 1
 
     def print_correlation_matrix_error(self) -> None:
         """ Display a message for correlation matrix error in debug image
