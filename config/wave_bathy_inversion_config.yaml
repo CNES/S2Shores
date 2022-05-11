@@ -42,6 +42,7 @@ TEMPORAL_CORRELATION:
   TEMPORAL_LAG: 1  # number of intervals between frames to let wave propagation happen (example 3 for a 1Hz sequence)
   PERCENTAGE_POINTS: 1 # percentage of selected points in the window for the computation
   TUNING:
+    NORMALIZED_PROMINENCE_RADON_MATRIX: 0.5
     PEAK_DETECTION_HEIGHT_RATIO: 0.3
     PEAK_DETECTION_DISTANCE_RATIO: 0.5
     RATIO_SIZE_CORRELATION: 1 # ratio used to clip correlation matrix from the middle
