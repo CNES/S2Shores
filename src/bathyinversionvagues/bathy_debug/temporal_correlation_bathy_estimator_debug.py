@@ -36,8 +36,6 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
     def __init__(self, location: PointType, ortho_sequence: OrthoSequence,
                  global_estimator: 'BathyEstimator',
                  selected_directions: Optional[np.ndarray] = None) -> None:
-        # FIXME: Handle severals wave_estimations
-        ######################################################
         super().__init__(location, ortho_sequence, global_estimator, selected_directions)
         self._figure = plt.figure(constrained_layout=True)
         self._nb_estimation = 0
@@ -64,9 +62,14 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
             self.dump_figure()
             raise excp
 
-    def initialize_figure(self):
-        self._nb_estimation = len(self.metrics['direction_estimations'])
-        self._gs = gridspec.GridSpec(2 + 2 * self._nb_estimation, 3, figure=self._figure)
+    def initialize_figure(self) -> None:
+        """ Initialize figures display
+        """
+        self._nb_estimation = len(self.metrics['pointed_estimations'])
+        self._gs = gridspec.GridSpec(
+            2 + self._nb_estimation,
+            3,
+            figure=self._figure)
 
     def show_thumbnail(self) -> None:
         """ Show first frame in sequence for a debug point
@@ -130,7 +133,7 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
             for direction in self.metrics['directions']:
                 subfigure.arrow(direction, 0, 0, l_1)
                 plt.annotate(f"{direction} °",
-                             (direction + 5, 10), color='orange')
+                             (direction + 5, 10), color='orange', fontsize=8)
         plt.title('Radon matrix')
 
     def show_sinogram(self) -> None:
@@ -167,35 +170,35 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         """
         # Fifth  diagram
         nb_sinograms = 0
-        direction_estimations = self.metrics['direction_estimations']
-        for direction_estimation in direction_estimations:
-            if direction_estimation:
+        pointed_estimations = self.metrics['pointed_estimations']
+        for pointed_estimation in pointed_estimations:
+            if pointed_estimation:
                 subfigure = self._figure.add_subplot(self._gs[2 + nb_sinograms, 2])
                 subfigure.axis('off')
-                celerities = direction_estimation.get_attribute('celerity')
+                celerities = pointed_estimation.get_attribute('celerity')
                 celerities = [round(celerity, 2) for celerity in celerities]
-                distances = direction_estimation.get_attribute('delta_position')
-                linerities = direction_estimation.get_attribute('linearity')
+                distances = pointed_estimation.get_attribute('delta_position')
+                linerities = pointed_estimation.get_attribute('linearity')
                 linerities = [round(linearity, 2) for linearity in linerities]
-                direction_estimation_tmp = deepcopy(direction_estimation)
-                direction_estimation.remove_unphysical_wave_fields()
-                direction_estimation.sort_on_attribute('linearity', reverse=False)
-                if direction_estimation:
-                    estimation = direction_estimation[0]
+                pointed_estimation_tmp = deepcopy(pointed_estimation)
+                pointed_estimation.remove_unphysical_wave_fields()
+                pointed_estimation.sort_on_attribute('linearity', reverse=False)
+                if pointed_estimation:
+                    estimation = pointed_estimation[0]
                     subfigure.annotate(f'direction = {estimation.direction}\n'
                                        f'wave_length = {estimation.wavelength}\n'
                                        f' dx = {distances} \n'
                                        f' c = {celerities} \n ckg = {linerities}\n'
                                        f' chosen_celerity = {estimation.celerity}\n'
                                        f' depth = {estimation.depth}',
-                                       (0, 0), color='g')
+                                       (0, 0), color='g', fontsize=8)
                 else:
-                    estimation = direction_estimation_tmp[0]
+                    estimation = pointed_estimation_tmp[0]
                     subfigure.annotate(f'direction = {estimation.direction}\n'
                                        f'wave_length = {estimation.wavelength} \n'
                                        f' dx = {distances} \n'
                                        f' c = {celerities} \n ckg = {linerities}\n'
-                                       f' No estimations have been found', (0, 0), color='g')
+                                       f' No estimations have been found', (0, 0), color='g', fontsize=8)
                 nb_sinograms = nb_sinograms + 1
 
     def print_correlation_matrix_error(self) -> None:
@@ -204,7 +207,7 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         subfigure = self._figure.add_subplot(self._gs[1, :2])
         subfigure.axis('off')
         subfigure.annotate('Correlation can not be computed',
-                           (0, 0), color='g')
+                           (0, 0), color='g', fontsize=8)
 
     def dump_figure(self) -> None:
         """ Save figure for a debug point
