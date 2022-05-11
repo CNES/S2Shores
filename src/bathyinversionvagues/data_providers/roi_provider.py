@@ -11,7 +11,6 @@ from typing import Optional, cast  # @NoMove
 from osgeo import ogr
 from shapely.geometry import Polygon, Point, MultiPolygon, box
 
-from ..image.image_geometry_types import PointType
 from .localized_data_provider import LocalizedDataProvider
 
 
@@ -22,10 +21,10 @@ class RoiProvider(ABC, LocalizedDataProvider):
     """
 
     @abstractmethod
-    def contains(self, point: PointType) -> bool:
+    def contains(self, point: Point) -> bool:
         """ Test if a point is inside the ROI
 
-        :param point: a tuple containing the X and Y coordinates in the SRS set for this provider
+        :param point: the point in the SRS coordinates set for this provider
         :returns: True if the point lies inside the ROI
         """
 
@@ -67,10 +66,10 @@ class VectorFileRoiProvider(RoiProvider):
         self._provider_to_client_transform = None  # provision for avoiding core dumps with ogr.
         return bouding_box_polygon
 
-    def contains(self, point: PointType) -> bool:
+    def contains(self, point: Point) -> bool:
         if self._polygons is None:
             self._load_polygons()
-        tranformed_point = Point(*self.transform_point(point, 0.))
+        tranformed_point = Point(*self.transform_point((point.x, point.y), 0.))
         return cast(MultiPolygon, self._polygons).contains(tranformed_point)
 
     def _load_polygons(self) -> None:

@@ -7,8 +7,7 @@
 from abc import abstractmethod, ABC
 import math
 
-
-from ..image.image_geometry_types import PointType
+from shapely.geometry import Point
 
 from .localized_data_provider import LocalizedDataProvider
 
@@ -20,10 +19,10 @@ class GravityProvider(ABC, LocalizedDataProvider):
     """
 
     @abstractmethod
-    def get_gravity(self, point: PointType, altitude: float) -> float:
+    def get_gravity(self, point: Point, altitude: float) -> float:
         """ Provides the gravity at some point expressed by its X, Y and H coordinates in some SRS.
 
-        :param point: a tuple containing the X and Y coordinates in the SRS set for this provider
+        :param point: a point expressed in the SRS coordinates set for this provider
         :param altitude: the altitude of the point in the SRS set for this provider
         :returns: the acceleration due to gravity at this point (m/s2).
         """
@@ -33,7 +32,7 @@ class ConstantGravityProvider(GravityProvider):
     """ A GravityProvider which provides the mean accelation of the gravity on Earth.
     """
 
-    def get_gravity(self, point: PointType, altitude: float) -> float:
+    def get_gravity(self, point: Point, altitude: float) -> float:
         _ = point
         _ = altitude
         # TODO: replace return value by 9.80665
@@ -50,7 +49,7 @@ class LatitudeVaryingGravityProvider(GravityProvider):
     g_45 = (g_poles + g_equator) / 2.
     delta_g = (g_poles - g_equator) / 2.
 
-    def get_gravity(self, point: PointType, altitude: float) -> float:
-        _, latitude, _ = self.transform_point(point, altitude)
+    def get_gravity(self, point: Point, altitude: float) -> float:
+        _, latitude, _ = self.transform_point((point.x, point.y), altitude)
         gravity = self.g_45 - self.delta_g * math.cos(latitude * math.pi / 90)
         return gravity

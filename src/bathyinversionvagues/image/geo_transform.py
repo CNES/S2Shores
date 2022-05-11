@@ -4,7 +4,12 @@
 :author: GIROS Alain
 :created: 26/04/2021
 """
-from .image_geometry_types import PointType, GdalGeoTransformType
+from typing import Sequence
+
+from shapely.geometry.point import Point
+
+
+GdalGeoTransformType = Sequence[float]
 
 
 class GeoTransform:
@@ -62,27 +67,26 @@ class GeoTransform:
         """
         return self.x_resolution == -self.y_resolution
 
-    def projected_coordinates(self, point_column: float, point_line: float) -> PointType:
+    def projected_coordinates(self, image_point: Point) -> Point:
         """ Computes the georeferenced coordinates of a point defined by its coordinates
         in the image
 
-        :param point_column: the point column coordinate, possibly non integer
-        :param point_line: the point line coordinate, possibly non integer
-        :returns: the x and y point coordinates in the projection system associated to this image.
+        :param image_point: the point in image coordinates, possibly non integer
+        :returns: the point in the projection system associated to this image.
         """
-        projected_x = (self.geo_transform[0] +
-                       point_column * self.geo_transform[1] + point_line * self.geo_transform[2])
-        projected_y = (self.geo_transform[3] +
-                       point_column * self.geo_transform[4] + point_line * self.geo_transform[5])
-        return projected_x, projected_y
+        # TODO: use shapely.affinity
+        projected_x = (self.geo_transform[0] + image_point.x * self.geo_transform[1] +
+                       image_point.y * self.geo_transform[2])
+        projected_y = (self.geo_transform[3] + image_point.x * self.geo_transform[4] +
+                       image_point.y * self.geo_transform[5])
+        return Point(projected_x, projected_y)
 
-    def image_coordinates(self, projected_x: float, projected_y: float) -> PointType:
-        """ Computes the images coordinates of a point defined by its coordinates in the projection
-        associated to this geotransform.
+    def image_coordinates(self, projected_point: Point) -> Point:
+        """ Computes the images coordinates of a point defined in the projection associated to this
+        geotransform.
 
-        :param projected_x: the point coordinate along the X projection axis
-        :param projected_y: the point coordinate along the Y projection axis
-        :returns: the corresponding column and line coordinates in the image.
+        :param projected_point: the point in projection coordinates
+        :returns: the corresponding point in image coordinates.
         """
         det = (self.geo_transform[1] * self.geo_transform[5] -
                self.geo_transform[2] * self.geo_transform[4])
@@ -91,8 +95,8 @@ class GeoTransform:
         offset_line = (self.geo_transform[0] * self.geo_transform[4] -
                        self.geo_transform[1] * self.geo_transform[3])
 
-        point_line = (self.geo_transform[1] * projected_y -
-                      self.geo_transform[4] * projected_x + offset_line) / det
-        point_column = (self.geo_transform[5] * projected_x -
-                        self.geo_transform[2] * projected_y + offset_column) / det
-        return point_column, point_line
+        point_line = (self.geo_transform[1] * projected_point.y -
+                      self.geo_transform[4] * projected_point.x + offset_line) / det
+        point_column = (self.geo_transform[5] * projected_point.x -
+                        self.geo_transform[2] * projected_point.y + offset_column) / det
+        return Point(point_column, point_line)

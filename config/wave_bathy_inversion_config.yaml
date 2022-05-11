@@ -52,5 +52,5 @@ TEMPORAL_CORRELATION:
 #spatial_correlation
 SPATIAL_CORRELATION:
   CORRELATION_MODE: 'full' # np.correlate mode
-  AUGMENTED_RADON_FACTOR: 0.1 # radon_augmentation - augment the resolution of the radon transform
+  AUGMENTED_RADON_FACTOR: 0.01 # radon_augmentation - augment the resolution of the radon transform
   PEAK_POSITION_MAX_FACTOR: 0.8 # peak_position - factor tunning for the maximum peak position

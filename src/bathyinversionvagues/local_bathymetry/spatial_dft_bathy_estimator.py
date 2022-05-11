@@ -10,12 +10,12 @@
 from typing import Optional, List, Tuple, Dict, Any, TYPE_CHECKING, cast  # @NoMove
 
 from scipy.signal import find_peaks
+from shapely.geometry import Point
 
 import numpy as np
 
 from ..bathy_physics import wavenumber_offshore
 from ..generic_utils.image_filters import detrend, desmooth
-from ..image.image_geometry_types import PointType
 from ..image.ortho_sequence import OrthoSequence, FrameIdType
 from ..image_processing.waves_image import ImageProcessingFilters
 from ..image_processing.waves_radon import WavesRadon
@@ -37,7 +37,7 @@ class SpatialDFTBathyEstimator(LocalBathyEstimator):
     final_estimations_sorting = 'energy'
     wave_field_estimation_cls = SpatialDFTBathyEstimation
 
-    def __init__(self, location: PointType, ortho_sequence: OrthoSequence,
+    def __init__(self, location: Point, ortho_sequence: OrthoSequence,
                  global_estimator: 'BathyEstimator',
                  selected_directions: Optional[np.ndarray] = None) -> None:
 

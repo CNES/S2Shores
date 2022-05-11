@@ -13,12 +13,12 @@ from copy import deepcopy
 
 from typing import Dict, Any, Optional, Type, TYPE_CHECKING  # @NoMove
 
+from shapely.geometry import Point
 import numpy as np
 
 from ..data_model.bathymetry_sample_estimation import BathymetrySampleEstimation
 from ..data_model.bathymetry_sample_estimations import BathymetrySampleEstimations
 from ..data_providers.delta_time_provider import NoDeltaTimeValueError
-from ..image.image_geometry_types import PointType
 from ..image.ortho_sequence import OrthoSequence, FrameIdType
 from ..image_processing.waves_image import ImageProcessingFilters
 from ..waves_exceptions import SequenceImagesError
@@ -42,7 +42,7 @@ class LocalBathyEstimator(ABC):
                       estimation.
         """
 
-    def __init__(self, location: PointType, ortho_sequence: OrthoSequence,
+    def __init__(self, location: Point, ortho_sequence: OrthoSequence,
                  global_estimator: 'BathyEstimator',
                  selected_directions: Optional[np.ndarray] = None) -> None:
         """ Constructor
@@ -69,9 +69,9 @@ class LocalBathyEstimator(ABC):
         self.selected_directions = selected_directions
 
         # FIXME: distance to shore test should take into account windows sizes
-        distance = self.global_estimator.get_distoshore(self._location)
-        gravity = self.global_estimator.get_gravity(self._location, 0.)
-        inside_roi = self.global_estimator.is_inside_roi(self._location)
+        distance = self.global_estimator.get_distoshore(self.location)
+        gravity = self.global_estimator.get_gravity(self.location, 0.)
+        inside_roi = self.global_estimator.is_inside_roi(self.location)
 
         self._bathymetry_estimations = BathymetrySampleEstimations(self._location, gravity,
                                                                    np.nan,
@@ -137,9 +137,9 @@ class LocalBathyEstimator(ABC):
         return self.bathymetry_estimations.gravity
 
     @property
-    def location(self) -> PointType:
-        """ :returns: The (X, Y) coordinates of the location where this estimator is acting"""
-        return self.bathymetry_estimations.location
+    def location(self) -> Point:
+        """ :returns: The location where this estimator is acting"""
+        return self._location
 
     @abstractmethod
     def run(self) -> None:

@@ -6,12 +6,12 @@
 """
 from abc import abstractmethod, ABC
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional, Any  # @NoMove
+
+from shapely.geometry import Point
 
 import xarray as xr  # @NoMove
 import numpy as np
-
-from ..image.image_geometry_types import PointType
 
 from .localized_data_provider import LocalizedDataProvider
 
@@ -22,10 +22,10 @@ class DisToShoreProvider(ABC, LocalizedDataProvider):
     """
 
     @abstractmethod
-    def get_distoshore(self, point: PointType) -> float:
+    def get_distoshore(self, point: Point) -> float:
         """ Provides the distance to shore of a point in kilometers.
 
-        :param point: a tuple containing the X and Y coordinates in the SRS set for this provider
+        :param point: a point expressed in the SRS coordinates set for this provider
         :returns: the distance to shore in kilometers (positive over water, zero on ground,
                   positive infinity if unknown).
         """
@@ -36,10 +36,10 @@ class InfinityDisToShoreProvider(DisToShoreProvider):
     point is always considered on water.
     """
 
-    def get_distoshore(self, point: PointType) -> float:
+    def get_distoshore(self, point: Point) -> float:
         """ Provides the distance to shore of a point in kilometers.
 
-        :param point: a tuple containing the X and Y coordinates in the SRS set for this provider
+        :param point: a point expressed in the SRS coordinates set for this provider
         :returns: positive infinity for any position
         """
         _ = point
@@ -70,15 +70,15 @@ class NetCDFDisToShoreProvider(DisToShoreProvider):
         self._distoshore_file_path = distoshore_file_path
         self._distoshore_xarray: Optional[Any] = None
 
-    def get_distoshore(self, point: PointType) -> float:
+    def get_distoshore(self, point: Point) -> float:
         """ Provides the distance to shore of a point in kilometers.
 
-        :param point: a tuple containing the X and Y coordinates in the SRS of the client
+        :param point: a point expressed in the SRS coordinates set for this provider
         :returns: the distance to the nearest shore (km)
         """
         if self._distoshore_xarray is None:
             self._distoshore_xarray = xr.open_dataset(self._distoshore_file_path)
-        provider_point = self.transform_point(point, 0.)
+        provider_point = self.transform_point((point.x, point.y), 0.)
         kw_sel = {self._x_axis_label: provider_point[0],
                   self._y_axis_label: provider_point[1],
                   'method': 'nearest'}

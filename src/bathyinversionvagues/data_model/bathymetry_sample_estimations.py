@@ -10,11 +10,11 @@
 from enum import IntEnum
 import warnings
 
+from shapely.geometry import Point
 from typing import Union, List, Optional
 
 import numpy as np
 
-from ..image.image_geometry_types import PointType
 from ..waves_exceptions import WavesEstimationAttributeError
 
 from .bathymetry_sample_estimation import BathymetrySampleEstimation
@@ -35,7 +35,7 @@ class BathymetrySampleEstimations(list):
     estimators, as well as a list of bathymetry estimations made at this location.
     """
 
-    def __init__(self, location: PointType, gravity: float, delta_time: float,
+    def __init__(self, location: Point, gravity: float, delta_time: float,
                  distance_to_shore: float, inside_roi: bool) -> None:
         super().__init__()
 
@@ -133,7 +133,7 @@ class BathymetrySampleEstimations(list):
                 self.remove(estimation)
 
     @property
-    def location(self) -> PointType:
+    def location(self) -> Point:
         """ :returns: The (X, Y) coordinates of this estimation location"""
         return self._location
 

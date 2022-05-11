@@ -7,6 +7,8 @@
 from pathlib import Path
 from typing import Optional, Union  # @NoMove
 
+from shapely.geometry import Point
+
 
 from ..data_providers.delta_time_provider import DeltaTimeProvider, NoDeltaTimeProviderError
 from ..data_providers.dis_to_shore_provider import (InfinityDisToShoreProvider, DisToShoreProvider,
@@ -14,7 +16,6 @@ from ..data_providers.dis_to_shore_provider import (InfinityDisToShoreProvider, 
 from ..data_providers.gravity_provider import (LatitudeVaryingGravityProvider, GravityProvider,
                                                ConstantGravityProvider)
 from ..data_providers.roi_provider import (RoiProvider, VectorFileRoiProvider)
-from ..image.image_geometry_types import PointType
 from ..image.ortho_stack import OrthoStack
 
 
@@ -67,7 +68,7 @@ class BathyEstimatorProviders:
         if self._distoshore_provider is not None:
             self._distoshore_provider.client_epsg_code = self._ortho_stack.epsg_code
 
-    def get_distoshore(self, point: PointType) -> float:
+    def get_distoshore(self, point: Point) -> float:
         """ Provides the distance from a given point to the nearest shore.
 
         :param point: the point from which the distance to shore is requested.
@@ -99,7 +100,7 @@ class BathyEstimatorProviders:
             self._roi_provider.client_epsg_code = self._ortho_stack.epsg_code
             self._limit_to_roi = limit_to_roi
 
-    def is_inside_roi(self, point: PointType) -> bool:
+    def is_inside_roi(self, point: Point) -> bool:
         """ Test if a point is inside the ROI
 
         :param point: the point to test
@@ -136,11 +137,11 @@ class BathyEstimatorProviders:
         if self._gravity_provider is not None:
             self._gravity_provider.client_epsg_code = self._ortho_stack.epsg_code
 
-    def get_gravity(self, point: PointType, altitude: float = 0.) -> float:
+    def get_gravity(self, point: Point, altitude: float = 0.) -> float:
         """ Returns the gravity at some point expressed by its X, Y and H coordinates in some SRS,
         using the gravity provider associated to this bathymetry estimator.
 
-        :param point: a tuple containing the X and Y coordinates in the SRS set for the provider
+        :param point: a point expressed in the SRS coordinates set for this provider
         :param altitude: the altitude of the point in the SRS set for this provider
         :returns: the acceleration due to gravity at this point (m/s2).
         """

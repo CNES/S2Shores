@@ -10,9 +10,8 @@ from typing import Mapping, Hashable, Any, Dict, List, Union, Tuple
 import numpy as np  # @NoMove
 from xarray import Dataset, DataArray  # @NoMove
 
-from ..image.carto_sampling import CartoSampling
+from ..image.sampling_2d import Sampling2D
 from ..waves_exceptions import WavesEstimationAttributeError
-
 from .bathymetry_sample_estimations import BathymetrySampleEstimations
 
 
@@ -220,7 +219,7 @@ class EstimatedBathy:
     """ This class gathers all the estimated bathymetry samples in a whole dataset.
     """
 
-    def __init__(self, carto_sampling: CartoSampling, acq_time: str) -> None:
+    def __init__(self, carto_sampling: Sampling2D, acq_time: str) -> None:
         """ Define dimensions for which the estimated bathymetry samples will be defined.
 
         :param carto_sampling: the X and Y sampling of the estimated bathymetry
@@ -228,7 +227,7 @@ class EstimatedBathy:
         """
         # data is stored as a 2D array of python objects, here a dictionary containing bathy fields.
         self.carto_sampling = carto_sampling
-        self.estimated_bathy = np.empty(carto_sampling.shape, dtype=np.object_)
+        self.estimated_bathy = np.empty(self.carto_sampling.shape, dtype=np.object_)
 
         timestamp = datetime(int(acq_time[:4]), int(acq_time[4:6]), int(acq_time[6:8]),
                              int(acq_time[9:11]), int(acq_time[11:13]), int(acq_time[13:15]))
@@ -332,9 +331,9 @@ class EstimatedBathy:
         value: Union[np.ndarray, List[datetime]]
         for element in dims:
             if element == 'y':
-                value = self.carto_sampling._y_samples
+                value = self.carto_sampling.y_samples
             elif element == 'x':
-                value = self.carto_sampling._x_samples
+                value = self.carto_sampling.x_samples
             elif element == 'kKeep':
                 value = np.arange(1, nb_keep + 1)
             else:

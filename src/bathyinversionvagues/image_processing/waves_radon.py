@@ -91,7 +91,7 @@ class WavesRadon(Sinograms):
                                         angle is transformed to the nearest quantized angle for
                                         indexing that direction in the radon transform.
         """
-        super().__init__(image.sampling_frequency, directions_quantization)
+        super().__init__(1. / image.resolution, directions_quantization)
 
         self.pixels = circular_masking(image.pixels.copy())
 

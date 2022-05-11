@@ -9,12 +9,12 @@
 """
 from typing import Dict, Optional, Type, TYPE_CHECKING  # @NoMove
 
+from shapely.geometry import Point
 import numpy as np
 
 from ..bathy_debug.spatial_dft_bathy_estimator_debug import SpatialDFTBathyEstimatorDebug
 from ..bathy_debug.temporal_correlation_bathy_estimator_debug import \
     TemporalCorrelationBathyEstimatorDebug
-from ..image.image_geometry_types import PointType
 from ..image.ortho_sequence import OrthoSequence
 
 from .local_bathy_estimator import LocalBathyEstimator
@@ -38,7 +38,7 @@ LOCAL_BATHY_ESTIMATION_CLS_DEBUG = {'SPATIAL_DFT': SpatialDFTBathyEstimatorDebug
                                     'SPATIAL_CORRELATION': SpatialCorrelationBathyEstimator}
 
 
-def local_bathy_estimator_factory(location: PointType, ortho_sequence: OrthoSequence,
+def local_bathy_estimator_factory(location: Point, ortho_sequence: OrthoSequence,
                                   global_estimator: 'BathyEstimator',
                                   selected_directions: Optional[np.ndarray] = None) \
         -> LocalBathyEstimator:

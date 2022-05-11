@@ -216,7 +216,7 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
             self._figure.savefig(
                 os.path.join(
                     self.global_estimator.debug_path,
-                    f'Infos_point_{self.location[0]}_{self.location[1]}.png'),
+                    f'Infos_point_{self.location.x}_{self.location.y}.png'),
                 dpi=300)
         plt.close()
 

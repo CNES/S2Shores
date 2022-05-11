@@ -21,6 +21,18 @@ class SpatialDFTBathyEstimatorDebug(LocalBathyEstimatorDebug, SpatialDFTBathyEst
     """
 
     def explore_results(self) -> None:
+
+        self.print_variables()
+        print(f'estimations after direction refinement :')
+        print(self.bathymetry_estimations)
+
+        # Displays
+        display_initial_data(self)
+        display_radon_transforms(self)
+        display_radon_transforms(self, refinement_phase=True)
+        display_context(self)
+
+    def print_variables(self) -> None:
         metrics = self.metrics
 
         initial_sino1_fft = self.radon_transforms[0].get_sinograms_standard_dfts()
@@ -47,12 +59,3 @@ class SpatialDFTBathyEstimatorDebug(LocalBathyEstimatorDebug, SpatialDFTBathyEst
             print(phase_shift[0][index])
 
         dump_numpy_variable(total_spectrum_normalized, 'refined total_spectrum_normalized')
-
-        print(f'estimations after direction refinement :')
-        print(self.bathymetry_estimations)
-
-        # Displays
-        display_initial_data(self)
-        display_radon_transforms(self)
-        display_radon_transforms(self, refinement_phase=True)
-        display_context(self)

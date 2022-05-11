@@ -6,15 +6,17 @@
 """
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Optional  # @NoMove
+from typing import Dict, Optional, List  # @NoMove
 
 from osgeo import gdal
+from shapely.geometry import Polygon
 
 from ..data_providers.delta_time_provider import DeltaTimeProvider
 from ..image_processing.waves_image import WavesImage
-
+from .image_geometry_types import MarginsType
 from .ortho_layout import OrthoLayout
 from .ortho_sequence import FrameIdType, FramesIdsType
+from .sampled_ortho_image import SampledOrthoImage
 
 
 class OrthoStack(ABC, OrthoLayout):
@@ -80,18 +82,6 @@ class OrthoStack(ABC, OrthoLayout):
         acquisition date and time.
         """
 
-    @property
-    def spatial_resolution(self) -> float:
-        """ :returns: the spatial resolution of the different frames in the stack (m)
-        """
-        return self._geo_transform.resolution
-
-    @property
-    def x_y_resolutions_equal(self) -> bool:
-        """ :returns: True if the absolute values of X and Y resolutions of the frames are equal
-        """
-        return self._geo_transform.x_y_resolutions_equal
-
     def build_infos(self) -> Dict[str, str]:
         """ :returns: a dictionary of metadata describing this ortho stack
         """
@@ -140,8 +130,30 @@ class OrthoStack(ABC, OrthoLayout):
         :returns: a DeltaTimeProvider fully configured for being used with this ortho stack.
         """
 
-    def read_pixels(self, frame_id: FrameIdType, line_start: int, line_stop: int,
-                    col_start: int, col_stop: int) -> WavesImage:
+    def build_subtiles(self, nb_subtiles_max: int, step_x: float, step_y: float,
+                       margins: MarginsType, roi: Optional[Polygon] = None) \
+            -> List['SampledOrthoImage']:
+        """ Class method building a set of SampledOrthoImage instances, forming a tiling of the
+        specified orthorectifed image.
+
+        :param image: the orthorectified image onto which the sampling is defined
+        :param nb_subtiles_max: the meximum number of tiles to create
+        :param step_x: the sampling step to use along the X axis for building the tiles
+        :param step_y: the sampling step to use along the X axis for building the tiles
+        :param margins: the margins to consider around the samples to determine the image extent
+        :param roi: theroi for which bathymetry must be computed, if any.
+        :returns: a list of SampledOrthoImage objects covering the orthorectfied image with the
+                  specified sampling steps and margins.
+        """
+        ortho_sampling = self.get_samples_positions(step_x, step_y, margins, roi)
+        subtiles_samplings = ortho_sampling.split(nb_subtiles_max)
+        subtiles: List[SampledOrthoImage] = []
+        for subtile_sampling in subtiles_samplings:
+            subtiles.append(SampledOrthoImage(self, subtile_sampling, margins))
+        return subtiles
+
+    def read_frame_image(self, frame_id: FrameIdType, line_start: int, line_stop: int,
+                         col_start: int, col_stop: int) -> WavesImage:
         """ Read a rectangle of pixels from a specific frame of this stack.
 
         :param frame_id: the identifier of the  frame to read
@@ -158,4 +170,4 @@ class OrthoStack(ABC, OrthoLayout):
         pixels = image.ReadAsArray(col_start, line_start, nb_cols, nb_lines)
         # release dataset
         image_dataset = None
-        return WavesImage(pixels, self.spatial_resolution)
+        return WavesImage(pixels, self._geo_transform.resolution)

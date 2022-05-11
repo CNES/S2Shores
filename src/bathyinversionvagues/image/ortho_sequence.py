@@ -10,15 +10,14 @@
 """
 from datetime import datetime
 
-from typing import Tuple, Callable, List, Any, Union
+from shapely.geometry import Point
+from typing import Tuple, List, Union
 
-import numpy as np
 
 from ..data_providers.delta_time_provider import DeltaTimeProvider
 from ..image_processing.waves_image import WavesImage
 from ..waves_exceptions import SequenceImagesError
-
-from .image_geometry_types import PointType, ImageWindowType
+from .image_geometry_types import ImageWindowType
 
 
 FrameIdType = Union[str, int, datetime]
@@ -35,30 +34,31 @@ class OrthoSequence(list):
         super().__init__()
 
         self._delta_time_provider = delta_time_provider
-        self._resolution = 0.
-        self._shape: Tuple[int, ...] = (0, 0)
 
         self._images_id: List[FrameIdType] = []
         self._images_time: List[datetime] = []
 
     @property
     def shape(self) -> Tuple[int, ...]:
-        """ :returns: The shape common to all the images contained in this sequence of images"""
-        return self._shape
+        """ :returns: The shape common to all the images contained in this sequence of images
+        :raises AttributeError: when there is no image in the sequence
+        """
+        if not self:
+            msg = 'Shape undefined when there is no image in the OrthoSequence'
+            raise AttributeError(msg)
+        return self[0].pixels.shape
 
     @property
     def resolution(self) -> float:
-        """ :returns: The spatial resolution of this sequence of images (m)"""
-        return self._resolution
+        """ :returns: The spatial resolution of this sequence of images (m)
+        :raises AttributeError: when there is no image in the sequence
+        """
+        if not self:
+            msg = 'Resolution undefined when there is no image in the OrthoSequence'
+            raise AttributeError(msg)
+        return self[0].resolution
 
-    @property
-    def sampling_frequency(self) -> float:
-        """ :returns: The spatial sampling frequency of this sequence of images (m-1)"""
-        if self.resolution == 0.:
-            return np.Infinity
-        return 1. / self.resolution
-
-    def get_time_difference(self, location: PointType,
+    def get_time_difference(self, location: Point,
                             start_frame_id: FrameIdType, stop_frame_id: FrameIdType) -> float:
         """ :returns: The time duration between the start and stop images used for the estimation.
                       Positive or negative depending on the chronology of start and stop images.
@@ -79,20 +79,18 @@ class OrthoSequence(list):
                             already recorded or when the image identifier is already present in the
                             sequence.
         """
-        if self._resolution != 0. and image.resolution != self._resolution:
+        if self and image.resolution != self[0].resolution:
             msg = 'Trying to add an image into images sequence with incompatible resolution:  new '
             msg += f'image resolution: {image.resolution} sequence resolution: {self.resolution}'
             raise ValueError(msg)
-        if self._shape != (0, 0) and image.pixels.shape != self._shape:
+        if self and image.pixels.shape != self[0].pixels.shape:
             msg = 'Trying to add an image into images sequence with incompatible shape:'
-            msg += f' new image shape: {image.pixels.shape} sequence shape: {self._shape}'
+            msg += f' new image shape: {image.pixels.shape} sequence shape: {self.shape}'
             raise ValueError(msg)
         if image_id in self._images_id:
             msg = 'Trying to add an image into images sequence with an already existing identifier:'
             msg += f' {image_id}'
             raise ValueError(msg)
-        self._resolution = image.resolution
-        self._shape = image.pixels.shape
         self.append(image)
         self._images_id.append(image_id)
 

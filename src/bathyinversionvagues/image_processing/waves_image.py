@@ -45,11 +45,6 @@ class WavesImage:
         return WavesImage(result, self.resolution)
 
     @property
-    def sampling_frequency(self) -> float:
-        """ :returns: The spatial sampling frequency of this image (m-1)"""
-        return 1. / self.resolution
-
-    @property
     def energy(self) -> float:
         """ :returns: The energy of the image"""
         return np.sum(self.pixels * self.pixels)
