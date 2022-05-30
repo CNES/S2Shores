@@ -12,7 +12,7 @@ from shapely.geometry import Point
 
 from ..data_providers.delta_time_provider import DeltaTimeProvider, NoDeltaTimeProviderError
 from ..data_providers.dis_to_shore_provider import (InfinityDisToShoreProvider, DisToShoreProvider,
-                                                    NetCDFDisToShoreProvider)
+                                                    NetCDFDisToShoreProvider, GeotiffDisToShoreProvider)
 from ..data_providers.gravity_provider import (LatitudeVaryingGravityProvider, GravityProvider,
                                                ConstantGravityProvider)
 from ..data_providers.roi_provider import (RoiProvider, VectorFileRoiProvider)
@@ -50,15 +50,18 @@ class BathyEstimatorProviders:
             self, provider_info: Optional[Union[Path, DisToShoreProvider]] = None) -> None:
         """ Sets the DisToShoreProvider to use with this estimator
 
-        :param provider_info: Either the DisToShoreProvider to use or a path to a netCDF file
-                           assuming a geographic NetCDF format.
+        :param provider_info: Either the DisToShoreProvider to use or a path to a netCDF or Geotiff file
+                           assuming a geographic NetCDF or Geotiff format.
         """
         if isinstance(provider_info, DisToShoreProvider):
             distoshore_provider = provider_info
         elif isinstance(provider_info, Path):
-            distoshore_provider = NetCDFDisToShoreProvider(provider_info, 4326,
-                                                           x_axis_label='lon',
-                                                           y_axis_label='lat')
+            if (Path(provider_info).suffix.lower() == '.nc'):
+                distoshore_provider = NetCDFDisToShoreProvider(provider_info, 4326,
+                                                               x_axis_label='lon',
+                                                               y_axis_label='lat')
+            elif (Path(provider_info).suffix.lower() == '.tif'):
+                distoshore_provider = GeotiffDisToShoreProvider(provider_info)
         else:
             # None or some other type, keep the current provider
             distoshore_provider = self._distoshore_provider

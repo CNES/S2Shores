@@ -10,8 +10,12 @@ from typing import Optional, Any  # @NoMove
 
 from shapely.geometry import Point
 
+from osgeo import gdal
 import xarray as xr  # @NoMove
+
 import numpy as np
+
+from ..image.geo_transform import GeoTransform
 
 from .localized_data_provider import LocalizedDataProvider
 
@@ -84,3 +88,45 @@ class NetCDFDisToShoreProvider(DisToShoreProvider):
                   'method': 'nearest'}
         distance_xr_dataset = self._distoshore_xarray.sel(**kw_sel)
         return float(distance_xr_dataset['disToShore'].values)
+
+
+class GeotiffDisToShoreProvider(DisToShoreProvider):
+    """ A DistToShoreProvider which provides the distance to shore when it is in a Geotiff file.
+    """
+
+    def __init__(self, distoshore_file_path: Path) -> None:
+        """ Create a GeotiffDisToShoreProvider object and set necessary informations
+
+        :param distoshore_file_path: full path of a GEOTIFF file containing the distance to shore
+                                     to be used by this provider.
+
+        """
+        super().__init__()
+
+        self._distoshore_file_path = distoshore_file_path
+        self._distoshore: Optional[Any] = None
+        self._geotransform: Optional[GeoTransform] = None
+
+    def get_distoshore(self, point: Point) -> float:
+        """ Provides the distance to shore of a point in kilometers.
+
+        :param point: a tuple containing the X and Y coordinates in the SRS of the client
+        :returns: the distance to the nearest shore (km)
+        """
+        if self._distoshore is None:
+            distoshore_dataset = gdal.Open(str(self._distoshore_file_path), gdal.GA_ReadOnly)
+            xsize = distoshore_dataset.RasterXSize
+            ysize = distoshore_dataset.RasterYSize
+            projection = distoshore_dataset.GetProjection()
+            self.provider_epsg_code = int(projection.split(',')[-1][1:-3])
+
+            self._geotransform = GeoTransform(distoshore_dataset.GetGeoTransform())
+
+            image = distoshore_dataset.GetRasterBand(1)
+            self._distoshore = image.ReadAsArray(0, 0, xsize, ysize)
+
+        provider_point = self.transform_point((point.x, point.y), 0.)
+        image_point = self._geotransform.image_coordinates(Point(provider_point[0:2]))
+        result = self._distoshore[round(image_point.y)][round(image_point.x)]
+
+        return result
