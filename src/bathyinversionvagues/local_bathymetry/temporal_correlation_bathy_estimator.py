@@ -8,7 +8,7 @@
 :created: 18/06/2021
 """
 from copy import deepcopy
-from typing import Optional, Tuple, TYPE_CHECKING, cast  # @NoMove
+from typing import Optional, Tuple, List, TYPE_CHECKING, cast  # @NoMove
 
 
 import pandas
@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 class TemporalCorrelationBathyEstimator(LocalBathyEstimator):
     """ Class performing temporal correlation to compute bathymetry
     """
+    final_estimations_sorting = 'energy'
     wave_field_estimation_cls = TemporalCorrelationBathyEstimation
 
     def __init__(self, location: Point, ortho_sequence: OrthoSequence,
@@ -170,6 +171,7 @@ class TemporalCorrelationBathyEstimator(LocalBathyEstimator):
             pointed_estimations.sort_on_attribute('linearity', reverse=False)
             if pointed_estimations:
                 best_estimation = pointed_estimations[0]
+                best_estimation.energy = sinogram_max_var.energy
                 self.bathymetry_estimations.append(best_estimation)
         if not self.bathymetry_estimations:
             raise WavesEstimationError('No correct wave fied estimations have been found')

@@ -14,3 +14,12 @@ class TemporalCorrelationBathyEstimation(BathymetrySampleEstimation):
     """ This class encapsulates the information estimated in a bathymetry sample by a
     TemporalCorrelationBathyEstimator.
     """
+
+    @property
+    def energy(self) -> float:
+        """ :returns: the energy of the wave field """
+        return self._energy
+
+    @energy.setter
+    def energy(self, value: float) -> None:
+        self._energy = value
