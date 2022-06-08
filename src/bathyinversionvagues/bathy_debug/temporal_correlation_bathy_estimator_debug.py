@@ -37,7 +37,7 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
                  global_estimator: 'BathyEstimator',
                  selected_directions: Optional[np.ndarray] = None) -> None:
         super().__init__(location, ortho_sequence, global_estimator, selected_directions)
-        self._figure = plt.figure(constrained_layout=True)
+        self._figure = None
         self._nb_estimation = 0
         self._gs = None
 
@@ -66,6 +66,8 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         """ Initialize figures display
         """
         self._nb_estimation = len(self.metrics['pointed_estimations'])
+        self._figure = plt.figure(
+            constrained_layout=True, figsize=[8, (2 + self._nb_estimation) * 2])
         self._gs = gridspec.GridSpec(
             2 + self._nb_estimation,
             3,
@@ -97,7 +99,7 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         """ Show correlation matrix for a debug point
         """
         # Second diagram : correlation matrix
-        subfigure = self._figure.add_subplot(self._gs[0, 1])
+        subfigure = self._figure.add_subplot(self._gs[0, 2])
         imin = np.min(self.correlation_image.pixels)
         imax = np.max(self.correlation_image.pixels)
         subfigure.imshow(self.correlation_image.pixels, norm=Normalize(vmin=imin, vmax=imax))
@@ -118,7 +120,7 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         """ Show radon matrix for a debug point
         """
         # Third diagram : Radon transform & maximum variance
-        subfigure = self._figure.add_subplot(self._gs[1, :2])
+        subfigure = self._figure.add_subplot(self._gs[1, :])
         radon_array, _ = self.metrics['radon_transform'].get_as_arrays()
         nb_directions, _ = radon_array.shape
         directions = self.selected_directions
@@ -142,6 +144,7 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         # Fourth diagram : Sinogram & wave length computation
         list_infos_sinogram = self.metrics['list_infos_sinogram']
         nb_sinograms = 0
+        plt.title('Sinogram')
         for sinogram_max_var, wave_length_zeros, max_indices in list_infos_sinogram:
             subfigure = self._figure.add_subplot(self._gs[2 + nb_sinograms, :2])
             x_axis = np.arange(-(len(sinogram_max_var) // 2), len(sinogram_max_var) // 2 + 1)
@@ -154,7 +157,6 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
                 subfigure.plot(x_axis[max_indices],
                                sinogram_max_var[max_indices], 'go')
             nb_sinograms = nb_sinograms + 1
-        plt.title('Sinogram')
 
     def show_failed_sinogram(self) -> None:
         """ Show sinogram on which computation has failed
@@ -185,20 +187,12 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
                 pointed_estimation.sort_on_attribute('linearity', reverse=False)
                 if pointed_estimation:
                     estimation = pointed_estimation[0]
-                    subfigure.annotate(f'direction = {estimation.direction}\n'
-                                       f'wave_length = {estimation.wavelength}\n'
-                                       f' dx = {distances} \n'
-                                       f' c = {celerities} \n ckg = {linerities}\n'
-                                       f' chosen_celerity = {estimation.celerity}\n'
-                                       f' depth = {estimation.depth}',
-                                       (0, 0), color='g', fontsize=8)
+                    notes = f'direction = {estimation.direction}\n wave_length = {estimation.wavelength}\n dx = {distances}\n c = {celerities}\n ckg = {linerities}\n chosen_celerity = {estimation.celerity}\n depth = {estimation.depth}\n'
+                    subfigure.text(0, 0, notes, fontsize=8, wrap=True)
                 else:
                     estimation = pointed_estimation_tmp[0]
-                    subfigure.annotate(f'direction = {estimation.direction}\n'
-                                       f'wave_length = {estimation.wavelength} \n'
-                                       f' dx = {distances} \n'
-                                       f' c = {celerities} \n ckg = {linerities}\n'
-                                       f' No estimations have been found', (0, 0), color='g', fontsize=8)
+                    notes = f'direction = {estimation.direction}\n wave_length = {estimation.wavelength}\n dx = {distances}\n c = {celerities}\n ckg = {linerities}\n'
+                    subfigure.text(0, 0, notes, fontsize=8, wrap=True)
                 nb_sinograms = nb_sinograms + 1
 
     def print_correlation_matrix_error(self) -> None:
@@ -213,6 +207,7 @@ class TemporalCorrelationBathyEstimatorDebug(LocalBathyEstimatorDebug,
         """ Save figure for a debug point
         """
         if self.global_estimator.debug_path:
+            self._gs.tight_layout(self._figure)
             self._figure.savefig(
                 os.path.join(
                     self.global_estimator.debug_path,
