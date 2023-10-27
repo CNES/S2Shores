@@ -170,6 +170,12 @@ class TemporalCorrelationBathyEstimator(LocalBathyEstimator):
                 np.square((self.sampling_positions[1] - self.sampling_positions[1].T)))
         return self._distances
     
+    @property
+    def adaptative_window_limit(self) -> float:
+        """ :returns: Maximal wavelength limitation to enable adaptative window
+        """
+        return np.min(self.ortho_sequence.shape)/self.local_estimator_params['TUNING']['ADAPTATIVE_RATIO']*self.ortho_sequence.resolution
+         
     
     def run(self) -> None:
         """ Run the local bathy estimator using correlation method
@@ -190,10 +196,57 @@ class TemporalCorrelationBathyEstimator(LocalBathyEstimator):
         # Extract wavelength and delta_x
         wavelength, distances = self.compute_wavefield()
 
+        if wavelength<self.adaptative_window_limit:
+            
+            # Adapt window size with estimated wavelength
+            self.adapt_window(wavelength)
+            
+            # Select random pixel position within the frame stack and extract Time-series 
+            self.create_sequence_time_series()
+
+            # Compute correlation and apply a gaussian mask
+            self.compute_temporal_correlation()
+
+            # Radon transform (sinogram) and get wave direction
+            direction_propagation = self.compute_radon_transform()
+
+            # Extract wavelength and delta_x
+            wavelength, distances = self.compute_wavefield()
+
         # Save the estimation
         self.save_wave_field_estimation(direction_propagation, wavelength, distances)
             
+            
+    def adapt_window(self, wavelength: float) -> None:
+        """ Crop the ortho_sequence according to the wavelength adapted window. 
+            Reset the estimator variable used in the depth extraction.
+            
+        :param wavelength: wavelength estimated in the first iteration     
+        """
+        # Processing attributes
+        self._correlation_matrix: Optional[np.ndarray] = None
+        self._correlation_image: Optional[WavesImage] = None
+        self.radon_transform: Optional[WavesRadon] = None
+        self.sinogram_maxvar: Optional[WavesSinogram] = None
+        self._angles: Optional[np.ndarray] = None
+        self._distances: Optional[np.ndarray] = None
+        self._sampling_positions: Optional[Tuple[np.ndarray, np.ndarray]] = None
+        self._time_series: Optional[np.ndarray] = None
+        self._sampling_period: Optional[float] = None
+        
+        image_size = self.ortho_sequence.shape
+        adapted_window = np.floor(wavelength*self.local_estimator_params['TUNING']['ADAPTATIVE_RATIO']/self.ortho_sequence.resolution)
+        
+        if adapted_window>=np.min(image_size):
+            return
+        window_size = (int(image_size[0]//2 - adapted_window//2), int(image_size[0]//2 + adapted_window//2),
+                       int(image_size[1]//2 - adapted_window//2), int(image_size[1]//2 + adapted_window//2))
 
+        for image in self.ortho_sequence:
+            filtered_image = image.extract_sub_image(window_size)
+            image.pixels = filtered_image.pixels
+            
+            
     def create_sequence_time_series(self) -> None:
         """ This function computes an np.array of time series.
         To do this random points are selected within the sequence of image and a temporal series
