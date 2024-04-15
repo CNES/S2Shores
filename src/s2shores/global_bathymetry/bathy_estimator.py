@@ -135,7 +135,10 @@ class BathyEstimator(BathyEstimatorParameters, BathyEstimatorProviders):
         merged_bathy = xr.combine_by_coords(bathy_subtiles)
         product_name = self._ortho_stack.full_name
         netcdf_output_path = (self._output_dir / product_name).with_suffix('.nc')
-        merged_bathy.to_netcdf(path=netcdf_output_path, format='NETCDF4')
+        try:
+            merged_bathy.to_netcdf(path=netcdf_output_path, format='NETCDF4')
+        except Exception as e:
+            print(f'ERROR while merging subtiles of {product_name}, product not saved. {e}')
 
     def build_infos(self) -> Dict[str, str]:
         """ :returns: a dictionary of metadata describing this estimator
