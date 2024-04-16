@@ -22,6 +22,8 @@ from ..image_processing.waves_radon import WavesRadon
 from ..waves_exceptions import WavesEstimationError
 from .local_bathy_estimator import LocalBathyEstimator
 from .spatial_dft_bathy_estimation import SpatialDFTBathyEstimation
+from ..image_processing.waves_radon import DEFAULT_ANGLE_MIN, DEFAULT_ANGLE_MAX, \
+                                           DEFAULT_ANGLE_STEP
 
 if TYPE_CHECKING:
     from ..global_bathymetry.bathy_estimator import BathyEstimator  # @UnusedImport
@@ -44,6 +46,11 @@ class SpatialDFTBathyEstimator(LocalBathyEstimator):
         self.radon_transforms: List[WavesRadon] = []
 
         self.full_linear_wavenumbers = self.get_full_linear_wavenumbers()
+
+        #TODO : should depend on selected_dir (cf Waves_radon) & should move
+        nb_directions = int((DEFAULT_ANGLE_MAX - DEFAULT_ANGLE_MIN)/DEFAULT_ANGLE_STEP)
+        nb_frequencies = int(np.ceil(self.ortho_sequence.shape[0]/2))
+        self.total_spectrum: np.ndarray = np.zeros((nb_directions, nb_frequencies))*np.nan
 
     @property
     def start_frame_id(self) -> FrameIdType:
@@ -102,6 +109,7 @@ class SpatialDFTBathyEstimator(LocalBathyEstimator):
         phase_shift, spectrum_amplitude, sinograms_correlation_fft = \
             self._cross_correl_spectrum(sino1_fft, sino2_fft)
         total_spectrum = np.abs(phase_shift) * spectrum_amplitude
+        self.total_spectrum = total_spectrum        
 
         max_heta = np.max(total_spectrum, axis=0)
         total_spectrum_normalized = max_heta / np.max(max_heta)
@@ -257,6 +265,7 @@ class SpatialDFTBathyEstimator(LocalBathyEstimator):
 
         wave_field_estimation.delta_phase = phase_shift
         wave_field_estimation.energy = energy
+        wave_field_estimation.waves_spectrum = self.total_spectrum
         return wave_field_estimation
 
     def _cross_correl_spectrum(self, sino1_fft: np.ndarray, sino2_fft: np.ndarray,

@@ -17,6 +17,7 @@ from ..data_model.estimated_bathy import EstimatedBathy, \
 from ..waves_exceptions import WavesEstimationAttributeError
 from .bathymetry_sample_estimations import BathymetrySampleEstimations
 
+DIMS_INDEX_XW_ANGLE_TIME = ['time', 'kKeep', 'xw', 'angle', 'index']
 DIMS_INDEX_NKEEP_TIME = ['time', 'kKeep', 'index']
 DIMS_INDEX_TIME = ['time', 'index']
 
@@ -246,6 +247,16 @@ BATHY_PRODUCT_DEF: Dict[str, Dict[str, Any]] = {
                                'long_name': 'energy_ratio',
                                'grid_mapping': SPATIAL_REF,
                                'coordinates': SPATIAL_REF}},
+    'waves_spectrum': {'layer_type': DEBUG_LAYER,
+                     'layer_name': 'Waves Spectrum',
+                     'dimensions': DIMS_INDEX_XW_ANGLE_TIME,
+                     'data_type': np.float32,
+                     'fill_value': np.nan,
+                     'precision': 3,
+                     'attrs': {'Dimension': 'some dim',
+                               'long_name': 'waves_spectrum',
+                               'grid_mapping': SPATIAL_REF,
+                               'coordinates': SPATIAL_REF}},
     'x': {'layer_type': NOMINAL_LAYER,
                      'layer_name': 'X',
                      'dimensions': DIMS_INDEX_TIME,
@@ -303,10 +314,13 @@ class EstimatedPointsBathy(EstimatedBathy):
                                                estimations attributes.
         """
         nb_samples = len(self.estimated_bathy)
-
+        if hasattr(self.estimated_bathy[0][0], 'waves_spectrum'):
+            nb_frequencies, nb_directions = self.estimated_bathy[0][0].waves_spectrum.shape
         dims = layer_definition['dimensions']
-        layer_shape: Union[Tuple[int], Tuple[int, int]]
-        if 'kKeep' in dims:
+        
+        if layer_definition['layer_name']=='Waves Spectrum':
+            layer_shape = (nb_keep, nb_frequencies, nb_directions, 1)
+        elif 'kKeep' in dims:
             layer_shape = (nb_keep, nb_samples)
         else:
             layer_shape = (nb_samples)
@@ -337,6 +351,10 @@ class EstimatedPointsBathy(EstimatedBathy):
     def _fill_array(self, sample_property: str, layer_data: np.ndarray, index: List[int]) -> None:
         index = index[0]
         bathymetry_estimations = self.estimated_bathy[index]
+        
+        if hasattr(self.estimated_bathy[index][0], 'waves_spectrum'):
+            nb_frequencies, nb_directions = self.estimated_bathy[index][0].waves_spectrum.shape
+
         if sample_property=='x':
             layer_data[index] = np.array([bathymetry_estimations._location.x])
         elif sample_property=='y':
@@ -347,11 +365,21 @@ class EstimatedPointsBathy(EstimatedBathy):
                 layer_data[index] = np.array(bathy_property)
             else:
                 nb_keep = layer_data.shape[0]
-                if len(bathy_property) > nb_keep:
-                    bathy_property = bathy_property[:nb_keep]
-                elif len(bathy_property) < nb_keep:
-                    bathy_property += [np.nan] * (nb_keep - len(bathy_property))
-                layer_data[:, index] = np.array(bathy_property)
+                if layer_data.shape==(nb_keep, nb_frequencies, nb_directions, 1):
+                    if len(bathy_property) > nb_keep:
+                        bathy_property = bathy_property[:nb_keep]
+                    elif len(bathy_property) < nb_keep:
+                        bathy_property = np.pad(np.array(bathy_property), 
+                                                ((0, nb_keep - len(bathy_property)), (0,0), (0,0)), 
+                                                mode='constant', 
+                                                constant_values=np.nan)
+                    layer_data[:, :, :, index] = np.array(bathy_property)
+                else:
+                    if len(bathy_property) > nb_keep:
+                        bathy_property = bathy_property[:nb_keep]
+                    elif len(bathy_property) < nb_keep:
+                        bathy_property += [np.nan] * (nb_keep - len(bathy_property))
+                    layer_data[:, index] = np.array(bathy_property)
 
     def _get_coords(self, dims: List[str], nb_keep: int) -> Mapping[Hashable, Any]:
         dict_coords: Dict[Hashable, Any] = {}
@@ -363,6 +391,10 @@ class EstimatedPointsBathy(EstimatedBathy):
                 value = np.arange(1, nb_keep + 1)
             elif element == 'time':
                 value = self.timestamps
+            elif element == 'angle':
+                value = np.arange(0, 360, dtype=int)
+            elif element == 'xw':
+                value = np.arange(0, 41, dtype=int)
             else:
                 raise ValueError('Unknown dimension in netcdf bathy description')
             dict_coords[element] = value

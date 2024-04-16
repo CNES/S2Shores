@@ -12,6 +12,8 @@ from typing import Tuple
 import numpy as np
 
 from ..data_model.bathymetry_sample_estimation import BathymetrySampleEstimation
+from ..image_processing.waves_radon import DEFAULT_ANGLE_MIN, DEFAULT_ANGLE_MAX, \
+                                           DEFAULT_ANGLE_STEP
 
 
 class SpatialDFTBathyEstimation(BathymetrySampleEstimation):
@@ -29,6 +31,9 @@ class SpatialDFTBathyEstimation(BathymetrySampleEstimation):
                          shallow_water_limit)
 
         self._energy = np.nan
+        #TODO : waves_spectrum should be set to an array of nan, but dimension 
+        #       (nb_directions, nb_frequencies) are unaccessible.
+        self._waves_spectrum = None
 
     @property
     def delta_celerity(self) -> float:
@@ -49,6 +54,15 @@ class SpatialDFTBathyEstimation(BathymetrySampleEstimation):
     def energy_ratio(self) -> float:
         """ :returns: The ratio of energy relative to the max peak """
         return (self.relative_period ** 2) * self.energy
+
+    @property
+    def waves_spectrum(self) -> np.ndarray:
+        """ :returns: The wave spectrum """
+        return self._waves_spectrum
+    
+    @waves_spectrum.setter
+    def waves_spectrum(self, value: np.ndarray) -> None:
+        self._waves_spectrum = value
 
     def __str__(self) -> str:
         result = super().__str__()
