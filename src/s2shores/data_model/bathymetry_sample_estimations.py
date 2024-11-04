@@ -48,6 +48,7 @@ class BathymetrySampleEstimations(list):
 
         self._data_available = True
         self._delta_time_available = True
+        self._physical_wave_fields_available = True
 
     def append(self, estimation: BathymetrySampleEstimation) -> None:
         """ Store a single estimation into the estimations list, ensuring that there are no
@@ -126,12 +127,9 @@ class BathymetrySampleEstimations(list):
     def remove_unphysical_wave_fields(self) -> None:
         """  Remove unphysical wave fields
         """
-        # Filter non physical wave fields in bathy estimations
-        # We iterate over a copy of the list in order to keep wave fields estimations unaffected
-        # on its specific attributes inside the loops.
-        for estimation in list(self):
-            if not estimation.is_physical():
-                self.remove(estimation)
+        # If a physical estimation is in the list, the flag is positionned
+        physical_mask = [e.is_physical() for e in self]
+        self._physical_wave_fields_available = True in physical_mask
 
     @property
     def location(self) -> Point:
@@ -198,7 +196,7 @@ class BathymetrySampleEstimations(list):
             status = SampleStatus.NO_DATA
         elif not self.delta_time_available:
             status = SampleStatus.NO_DELTA_TIME
-        elif not self:
+        elif not self._physical_wave_fields_available:
             status = SampleStatus.FAIL
         return status.value
 
