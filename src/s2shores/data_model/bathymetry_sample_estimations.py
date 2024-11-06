@@ -133,7 +133,13 @@ class BathymetrySampleEstimations(list):
         for estimation in list(self):
             if not estimation.is_physical():
                 self.remove(estimation)
-
+    
+    def flag_unphysical_wave_fields(self) -> None:
+        """  Flag unphysical wave fields
+        """
+        # value out of the physical domain are flagged but kept for debugging purpose
+        self.status_debug = [not e.is_physical() for e in self]
+        self._physical_wave_fields_available = True in self.status_debug
 
     @property
     def location(self) -> Point:
@@ -200,10 +206,29 @@ class BathymetrySampleEstimations(list):
             status = SampleStatus.NO_DATA
         elif not self.delta_time_available:
             status = SampleStatus.NO_DELTA_TIME
-        elif not self._physical_wave_fields_available:
+        elif not self or not self._physical_wave_fields_available:
             status = SampleStatus.FAIL
         return status.value
-
+    
+    @property
+    def status_debug(self) -> int:
+        """ :returns: a synthetic value giving the final estimation status
+        """
+        status = SampleStatus.SUCCESS
+        if self.distance_to_shore <= 0.:
+            status_debug = SampleStatus.ON_GROUND
+        elif not self.inside_offshore_limit:
+            status_debug = SampleStatus.BEYOND_OFFSHORE_LIMIT
+        elif not self.inside_roi:
+            status_debug = SampleStatus.OUTSIDE_ROI
+        elif not self.data_available:
+            status_debug = SampleStatus.NO_DATA
+        elif not self.delta_time_available:
+            status_debug = SampleStatus.NO_DELTA_TIME
+        elif not self._physical_wave_fields_available:
+            status_debug = SampleStatus.FAIL
+        return status_debug.value
+    
     def __str__(self) -> str:
         result = f'+++++++++ Set of estimations made at: {self.location} \n'
         result += f'  distance to shore: {self.distance_to_shore}   gravity: {self.gravity}\n'
