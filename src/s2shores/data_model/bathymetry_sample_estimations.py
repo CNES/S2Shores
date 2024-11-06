@@ -207,7 +207,9 @@ class BathymetrySampleEstimations(list):
             status = SampleStatus.NO_DATA
         elif not self.delta_time_available:
             status = SampleStatus.NO_DELTA_TIME
-        elif not self or not self._physical_wave_fields_available:
+        elif self._status_debug and not self._physical_wave_fields_available:
+            status = SampleStatus.FAIL
+        elif not self:
             status = SampleStatus.FAIL
         return status.value
     
