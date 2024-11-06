@@ -127,9 +127,13 @@ class BathymetrySampleEstimations(list):
     def remove_unphysical_wave_fields(self) -> None:
         """  Remove unphysical wave fields
         """
-        # If a physical estimation is in the list, the flag is positionned
-        physical_mask = [e.is_physical() for e in self]
-        self._physical_wave_fields_available = True in physical_mask
+        # Filter non physical wave fields in bathy estimations
+        # We iterate over a copy of the list in order to keep wave fields estimations unaffected
+        # on its specific attributes inside the loops.
+        for estimation in list(self):
+            if not estimation.is_physical():
+                self.remove(estimation)
+
 
     @property
     def location(self) -> Point:
