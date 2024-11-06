@@ -33,6 +33,17 @@ BATHY_PRODUCT_DEF: Dict[str, Dict[str, Any]] = {
                          'comment': '0: SUCCESS, 1: FAIL, 2: ON_GROUND, '
                                     '3: NO_DATA, 4: NO_DELTA_TIME , '
                                     '5: OUTSIDE_ROI, 6: BEYOND_OFFSHORE_LIMIT'}},
+    'status_debug': {'layer_type': DEBUG_LAYER,
+               'layer_name': 'Status_Debug',
+               'dimensions': DIMS_Y_X_NKEEP_TIME,
+               'data_type': np.ushort,
+               'fill_value': 0,
+               'precision': 0,
+               'attrs': {'Dimension': 'Flags',
+                         'long_name': 'Bathymetry estimation status per kKeep',
+                         'comment': '0: SUCCESS, 1: FAIL, 2: ON_GROUND, '
+                                    '3: NO_DATA, 4: NO_DELTA_TIME , '
+                                    '5: OUTSIDE_ROI, 6: BEYOND_OFFSHORE_LIMIT'}}, 
     'depth': {'layer_type': NOMINAL_LAYER,
               'layer_name': 'Depth',
               'dimensions': DIMS_Y_X_NKEEP_TIME,
