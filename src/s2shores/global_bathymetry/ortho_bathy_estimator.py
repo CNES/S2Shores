@@ -112,7 +112,7 @@ class OrthoBathyEstimator:
             bathy_estimations = local_bathy_estimator.bathymetry_estimations
             if local_bathy_estimator.can_estimate_bathy():
                 local_bathy_estimator.run()
-                if self.parent_estimator._debug_sample:
+                if self.parent_estimator.debug_sample:
                     bathy_estimations.flag_unphysical_wave_fields()
                 else:
                     bathy_estimations.remove_unphysical_wave_fields()

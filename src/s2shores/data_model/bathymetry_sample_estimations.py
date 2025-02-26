@@ -139,7 +139,7 @@ class BathymetrySampleEstimations(list):
         """  Flag unphysical wave fields
         """
         # value out of the physical domain are flagged but kept for debugging purpose
-        self.status_debug = [not e.is_physical() for e in self]
+        self._status_debug = [e.is_physical() for e in self]
         self._physical_wave_fields_available = True in self.status_debug
 
     @property

@@ -40,9 +40,7 @@ BATHY_PRODUCT_DEF: Dict[str, Dict[str, Any]] = {
                'precision': 0,
                'attrs': {'Dimension': 'Flags',
                          'long_name': 'Bathymetry estimation status per kKeep',
-                         'comment': '0: SUCCESS, 1: FAIL, 2: ON_GROUND, '
-                                    '3: NO_DATA, 4: NO_DELTA_TIME , '
-                                    '5: OUTSIDE_ROI, 6: BEYOND_OFFSHORE_LIMIT'}},                                    
+                         'comment': '0: NODATA, 1: DATA_PRESENT'}},                                   
     'depth': {'layer_type': NOMINAL_LAYER,
               'layer_name': 'Depth',
               'dimensions': DIMS_INDEX_NKEEP_TIME,
