@@ -1,6 +1,6 @@
 # S2Shores
 
-
+S2shores
 # References
 
 Almar, R., Bergsma, E. W., Maisongrande, P., & De Almeida, L. P. M. (2019). Wave-derived coastal bathymetry from satellite video imagery: A showcase with Pleiades persistent mode. Remote Sensing of Environment, 231, 111263. https://doi.org/10.1016/j.rse.2019.111263
