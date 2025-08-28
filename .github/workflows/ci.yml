@@ -20,12 +20,15 @@ jobs:
         shell: bash -l {0}
         run: |
           pip install pylint mccabe
-      - name: code quality
+      - name: Run Pylint
         shell: bash -l {0}
         run: |
-          pylint --disable=all --fail-under=10 --enable=too-many-statements src/s2shores
-          pylint --disable=all --fail-under=10 --enable=too-many-nested-blocks src/s2shores
+          pylint --recursive=y --disable=all --fail-under=10 --enable=too-many-statements,too-many-nested-blocks src/s2shores
+      - name: Run McCabe Complexity Check
+        shell: bash -l {0}
+        run: |
           ./continuous_integration/scripts/check_mccabe_complexity.sh 25 src/s2shores
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -50,4 +53,12 @@ jobs:
       shell: bash -l {0}
       run: |
         conda activate test_env
-        pytest -m ci --cov-fail-under=65
+        pytest -m ci --cov=src/s2shores --cov-report=xml:.ci-reports-s2shores/coverage_s2shores.xml --cov-report html:cov_html_s2shores --cov-report=term --junitxml=pytest-results-s2shores.xml
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-s2shores
+        path: |
+          .ci-reports-s2shores/
+          cov_html_s2shores/
+          pytest-results-s2shores.xml

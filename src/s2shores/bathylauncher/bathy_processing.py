@@ -45,6 +45,57 @@ def create_timestamped_dir(output_dir_root: Path) -> Path:
     output_dir_step.mkdir(parents=True, exist_ok=False)
     return output_dir_step
 
+def bathy_process(input_product: Path, product_type: str, output_dir: Path,
+                    config_file: Path, debug_file: Path = None, debug_path: Path = None, distoshore_file: Path = None,
+                    delta_times_dir: Path = None, roi_file: Path = None, limit_to_roi : bool = False,
+                    nb_subtiles: int = 1, sequential: bool  = False, profiling: bool = False):
+    """ Function to be called when using bathylauncher as a module """
+    product_cls: Type[OrthoStack]
+    if product_type == 'geotiff':
+        product_cls = GeoTiffProduct
+    elif product_type == 'S2':
+        product_cls = S2ImageProduct
+    else:
+        raise TypeError('Product type not handled')
+    with open(config_file) as file:
+        bathy_inversion_params = yaml.load(file, Loader=yaml.FullLoader)
+
+    output_dir_processing = create_timestamped_dir(output_dir)
+    copy(config_file, output_dir_processing)
+
+    debug_params = None
+    if debug_file:
+        with open(debug_file) as file:
+            debug_params = yaml.load(file, Loader=yaml.FullLoader)
+        if not debug_path:
+            debug_path = output_dir_processing / 'debug'
+            debug_path.mkdir()
+        else:
+            if not debug_path.exists():
+                raise FileExistsError
+
+    products: ProductsDescriptor = {input_product.stem:  # pylint: disable=possibly-unused-variable
+                                        (input_product, product_cls, output_dir_processing,
+                                         bathy_inversion_params, nb_subtiles, delta_times_dir,
+                                         distoshore_file, roi_file, limit_to_roi,
+                                         debug_params, debug_path)
+                                    }
+    start = time.time()
+
+    # In order to be able to do profiling, the launch() calling instruction must be a string.
+    # Therefore, in order to avoid duplication, we will be calling launch() with eval when no
+    # profiling is required.
+    launch_instruction = \
+        'BathyLauncher.launch(products,' \
+        'gravity_type="LATITUDE_VARYING",sequential_run=sequential)'
+    if profiling:
+        sequential = True
+        cProfile.runctx(launch_instruction, globals(), locals())
+    else:
+        BathyLauncher.launch(products, gravity_type="LATITUDE_VARYING", sequential_run=sequential)  # pylint: disable=eval-used
+
+    stop = time.time()
+    print('Bathy estimation total time : ', stop - start)
 
 @click.command()
 @click.option('--input_product', type=click.Path(exists=True, path_type=Path), required=True,
@@ -73,85 +124,15 @@ def create_timestamped_dir(output_dir_root: Path) -> Path:
               help='if set, allows run in a single thread, usefull for debugging purpose')
 @click.option('--profiling/--no-profiling', default=False,
               help='If set, print profiling information about the whole bathymetry estimation')
-def process_command(
-    input_product: Path,
-    product_type: str,
-    output_dir: Path,
-    config_file: Path,
-    debug_file: Path,
-    debug_path: Path,
-    distoshore_file: Path,
-    delta_times_dir: Path,
-    roi_file: Path,
-    limit_to_roi: bool,
-    nb_subtiles: int,
-    sequential: bool,
-    profiling: bool,
-) -> None:
-    return _process_command(**locals())
+def process_command(input_product: Path, product_type: str, output_dir: Path,
+                    config_file: Path, debug_file: Path, debug_path: Path, distoshore_file: Path,
+                    delta_times_dir: Path, roi_file: Path, limit_to_roi: bool,
+                    nb_subtiles: int, sequential: bool, profiling: bool) -> None:
+    bathy_process(input_product, product_type, output_dir,
+                    config_file, debug_file, debug_path, distoshore_file,
+                    delta_times_dir, roi_file, limit_to_roi,
+                    nb_subtiles, sequential, profiling)
 
-
-def _process_command(
-    input_product: Path,
-    product_type: str,
-    output_dir: Path,
-    config_file: Path,
-    debug_file: Path,
-    debug_path: Path,
-    distoshore_file: Path,
-    delta_times_dir: Path,
-    roi_file: Path,
-    limit_to_roi: bool,
-    nb_subtiles: int,
-    sequential: bool,
-    profiling: bool,
-) -> None:
-    product_cls: Type[OrthoStack]
-    if product_type == 'geotiff':
-        product_cls = GeoTiffProduct
-    elif product_type == 'S2':
-        product_cls = S2ImageProduct
-    else:
-        raise TypeError('Product type not handled')
-    with open(config_file) as file:
-        bathy_inversion_params = yaml.load(file, Loader=yaml.FullLoader)
-
-    output_dir_processing = create_timestamped_dir(output_dir)
-    copy(config_file, output_dir_processing)
-
-    debug_params = None
-    if debug_file:
-        with open(debug_file) as file:
-            debug_params = yaml.load(file, Loader=yaml.FullLoader)
-        if not debug_path:
-            debug_path = output_dir_processing / 'debug'
-            debug_path.mkdir()
-        else:
-            if not debug_path.exists():
-                raise FileExistsError
-
-    products: ProductsDescriptor = {input_product.stem:  # pylint: disable=possibly-unused-variable
-                                    (input_product, product_cls, output_dir_processing,
-                                     bathy_inversion_params, nb_subtiles, delta_times_dir,
-                                     distoshore_file, roi_file, limit_to_roi,
-                                     debug_params, debug_path)
-                                    }
-    start = time.time()
-
-    # In order to be able to do profiling, the launch() calling instruction must be a string.
-    # Therefore, in order to avoid duplication, we will be calling launch() with eval when no
-    # profiling is required.
-    launch_instruction = \
-        'BathyLauncher.launch(products,' \
-        'gravity_type="LATITUDE_VARYING",sequential_run=sequential)'
-    if profiling:
-        sequential = True
-        cProfile.runctx(launch_instruction, globals(), locals())
-    else:
-        eval(launch_instruction, globals(), locals())  # pylint: disable=eval-used
-
-    stop = time.time()
-    print('Bathy estimation total time : ', stop - start)
 
 
 if __name__ == '__main__':

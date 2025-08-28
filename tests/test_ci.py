@@ -24,11 +24,9 @@ import shutil
 
 from osgeo import gdal
 from tests.test_utils import compare_files, unzip_file
-from click.testing import CliRunner
+from src.s2shores.bathylauncher.bathy_processing import bathy_process
 import pytest
 from tests.conftest import S2SHORESTestsPath
-
-from s2shores.bathylauncher.bathy_processing import process_command
 
 
 @pytest.mark.ci
@@ -41,18 +39,17 @@ def test_nominal_spatialCorrelation_s2_quick(s2shores_paths: S2SHORESTestsPath) 
     - Ensure the generated .nc output file matches the reference.
     """
     dis2shore_file = "GMT_intermediate_coast_distance_01d_test_5000_cropped.nc"
-    runner = CliRunner()
 
-    result = runner.invoke(process_command, [
-        '--input_product', str(s2shores_paths.s2new_cropped),
-        '--product_type', 'S2',
-        '--output_dir', str(s2shores_paths.output_dir),
-        '--config_file', f'{s2shores_paths.config_dir}/config2/wave_bathy_inversion_config_quick.yaml',
-        '--distoshore_file', f'{s2shores_paths.dis2shore_dir}/{dis2shore_file}',
-        '--delta_times_dir', str(s2shores_paths.delta_times_dir_esa),
-        '--nb_subtiles', '36'])
+    bathy_process(
+        input_product=s2shores_paths.s2new_cropped,
+        product_type='S2',
+        output_dir=s2shores_paths.output_dir,
+        config_file=(s2shores_paths.config_dir/"config2"/"wave_bathy_inversion_config_quick.yaml"),
+        distoshore_file=(s2shores_paths.dis2shore_dir / dis2shore_file),
+        delta_times_dir=s2shores_paths.delta_times_dir_esa,
+        nb_subtiles=36,
+    )
 
-    print(result.output)
     compare_files(reference_dir = f"{s2shores_paths.output_dir}/CI_tests/nominal_spatialCorrelation_s2_quick",
                   output_dir = s2shores_paths.output_dir)
 
@@ -65,18 +62,18 @@ def test_nominal_dft_s2_quick(s2shores_paths: S2SHORESTestsPath) -> None:
     - Verify that all expected output files are created.
     - Ensure the generated .nc output file matches the reference.
     """
-    runner = CliRunner()
+    bathy_process(
+        input_product=s2shores_paths.s2new_cropped,
+        product_type='S2',
+        output_dir=s2shores_paths.output_dir,
+        config_file=(s2shores_paths.config_dir/"config3"/"wave_bathy_inversion_config_quick.yaml"),
+        debug_file=None,
+        debug_path=None,
+        distoshore_file=(s2shores_paths.dis2shore_dir/"disToShore_30TXR_cropped.TIF"),
+        delta_times_dir=s2shores_paths.delta_times_dir_esa,
+        nb_subtiles=36,
+    )
 
-    result = runner.invoke(process_command, [
-        '--input_product', str(s2shores_paths.s2new_cropped),
-        '--product_type', 'S2',
-        '--output_dir', str(s2shores_paths.output_dir),
-        '--config_file', f'{s2shores_paths.config_dir}/config3/wave_bathy_inversion_config_quick.yaml',
-        '--distoshore_file', f'{s2shores_paths.dis2shore_dir}/disToShore_30TXR_cropped.TIF',
-        '--delta_times_dir', str(s2shores_paths.delta_times_dir_esa),
-        '--nb_subtiles', '36'])
-
-    print(result.output)
     compare_files(reference_dir = f"{s2shores_paths.output_dir}/CI_tests/nominal_dft_s2_quick",
                   output_dir = s2shores_paths.output_dir)
 
@@ -90,16 +87,15 @@ def test_nominal_video_quick(s2shores_paths: S2SHORESTestsPath) -> None:
     - Ensure the generated .nc output file matches the reference.
     """
     unzip_file(s2shores_paths.funwave_cropped.with_suffix('.zip'))
-    runner = CliRunner()
 
-    result = runner.invoke(process_command, [
-        '--input_product', str(s2shores_paths.funwave_cropped),
-        '--product_type', 'geotiff',
-        '--output_dir', str(s2shores_paths.output_dir),
-        '--config_file', f'{s2shores_paths.config_dir}/config4/wave_bathy_inversion_config_quick.yaml',
-        '--nb_subtiles', '4'])
+    bathy_process(
+        input_product=s2shores_paths.funwave_cropped,
+        product_type='geotiff',
+        output_dir=s2shores_paths.output_dir,
+        config_file=(s2shores_paths.config_dir/"config4"/"wave_bathy_inversion_config_quick.yaml"),
+        nb_subtiles=4,
+    )
 
-    print(result.output)
     compare_files(reference_dir=f"{s2shores_paths.output_dir}/CI_tests/nominal_video_quick",
                   output_dir=s2shores_paths.output_dir)
 
@@ -118,17 +114,16 @@ def test_debug_pointswash_temporal_corr_quick(s2shores_paths: S2SHORESTestsPath)
     os.mkdir(debug_path)
 
     unzip_file(s2shores_paths.swash7_cropped.with_suffix('.zip'))
-    runner = CliRunner()
 
-    result = runner.invoke(process_command, [
-        '--input_product', str(s2shores_paths.swash7_cropped),
-        '--product_type', 'geotiff',
-        '--output_dir', str(s2shores_paths.output_dir),
-        '--config_file', f'{s2shores_paths.config_dir}/config7/wave_bathy_inversion_config_quick.yaml',
-        '--debug_path', f'{s2shores_paths.output_dir}/debug_pointswash_temporal_corr',
-        '--debug_file', f'{s2shores_paths.debug_dir}/debug_points_SWASH_7_4_cropped.yaml'])
+    bathy_process(
+        input_product=s2shores_paths.swash7_cropped,
+        product_type='geotiff',
+        output_dir=s2shores_paths.output_dir,
+        config_file=(s2shores_paths.config_dir/"config7"/"wave_bathy_inversion_config_quick.yaml"),
+        debug_file=(s2shores_paths.debug_dir/"debug_points_SWASH_7_4_cropped.yaml"),
+        debug_path=(s2shores_paths.output_dir/"debug_pointswash_temporal_corr"),
+    )
 
-    print(result.output)
     compare_files(reference_dir=f"{s2shores_paths.output_dir}/CI_tests/debug_pointswash_temporal_corr_quick",
                   output_dir=s2shores_paths.output_dir,
                   debug_dir = f'{s2shores_paths.output_dir}/debug_pointswash_temporal_corr')
@@ -147,17 +142,16 @@ def test_debug_pointswash_spatial_dft_quick(s2shores_paths: S2SHORESTestsPath) -
     os.mkdir(debug_path)
 
     unzip_file(s2shores_paths.swash8_cropped.with_suffix('.zip'))
-    runner = CliRunner()
 
-    result = runner.invoke(process_command, [
-        '--input_product', str(s2shores_paths.swash8_cropped),
-        '--product_type', 'geotiff',
-        '--output_dir', str(s2shores_paths.output_dir),
-        '--config_file', f'{s2shores_paths.config_dir}/config5/wave_bathy_inversion_config_quick.yaml',
-        '--debug_path', f'{s2shores_paths.output_dir}/debug_pointswash_spatial_dft',
-        '--debug_file', f'{s2shores_paths.debug_dir}/debug_points_SWASH_8_2_cropped.yaml'])
+    bathy_process(
+        input_product=s2shores_paths.swash8_cropped,
+        product_type='geotiff',
+        output_dir=s2shores_paths.output_dir,
+        config_file=(s2shores_paths.config_dir/"config5"/"wave_bathy_inversion_config_quick.yaml"),
+        debug_file=(s2shores_paths.debug_dir/"debug_points_SWASH_8_2_cropped.yaml"),
+        debug_path=(s2shores_paths.output_dir/"debug_pointswash_spatial_dft")
+    )
 
-    print(result.output)
     compare_files(reference_dir=f"{s2shores_paths.output_dir}/CI_tests/debug_pointswash_dft_quick",
                   output_dir=s2shores_paths.output_dir,
                   debug_dir = f'{s2shores_paths.output_dir}/debug_pointswash_spatial_dft')
@@ -177,17 +171,16 @@ def test_debug_pointswash_spatial_corr_quick(s2shores_paths: S2SHORESTestsPath) 
     os.mkdir(debug_path)
 
     unzip_file(s2shores_paths.swash8_cropped.with_suffix('.zip'))
-    runner = CliRunner()
 
-    result = runner.invoke(process_command, [
-        '--input_product', str(s2shores_paths.swash8_cropped),
-        '--product_type', 'geotiff',
-        '--output_dir', str(s2shores_paths.output_dir),
-        '--config_file', f'{s2shores_paths.config_dir}/config6/wave_bathy_inversion_config_quick.yaml',
-        '--debug_path', f'{s2shores_paths.output_dir}/debug_pointswash_spatial_corr',
-        '--debug_file', f'{s2shores_paths.debug_dir}/debug_points_SWASH_8_2_cropped.yaml'])
+    bathy_process(
+        input_product=s2shores_paths.swash8_cropped,
+        product_type='geotiff',
+        output_dir=s2shores_paths.output_dir,
+        config_file=(s2shores_paths.config_dir/"config6"/"wave_bathy_inversion_config_quick.yaml"),
+        debug_file=(s2shores_paths.debug_dir/"debug_points_SWASH_8_2_cropped.yaml"),
+        debug_path=(s2shores_paths.output_dir/"debug_pointswash_spatial_corr")
+    )
 
-    print(result.output)
     compare_files(reference_dir=f"{s2shores_paths.output_dir}/CI_tests/debug_pointswash_spatial_corr_quick",
                   output_dir=s2shores_paths.output_dir,
                   debug_dir = f'{s2shores_paths.output_dir}/debug_pointswash_spatial_corr')
@@ -200,21 +193,19 @@ def test_limitroi_s2_quick(s2shores_paths: S2SHORESTestsPath) -> None:
     - Verify that all expected output files are created.
     - Ensure the generated .nc output file matches the reference.
     """
-    runner = CliRunner()
+    bathy_process(
+        input_product=s2shores_paths.s2new_cropped,
+        product_type='S2',
+        output_dir=s2shores_paths.output_dir,
+        config_file=(s2shores_paths.config_dir/"config2"/"wave_bathy_inversion_config_quick.yaml"),
+        distoshore_file=(s2shores_paths.dis2shore_dir/"disToShore_30TXR_cropped.TIF"),
+        delta_times_dir=s2shores_paths.delta_times_dir_esa,
+        roi_file=(s2shores_paths.roi_dir/"30TXR-ROI-cropped.shp"),
+        limit_to_roi=True,
+        nb_subtiles=36,
+        sequential=True,
+    )
 
-    result = runner.invoke(process_command, [
-        '--input_product', str(s2shores_paths.s2new_cropped),
-        '--output_dir', str(s2shores_paths.output_dir),
-        '--config_file', f'{s2shores_paths.config_dir}/config2/wave_bathy_inversion_config_quick.yaml',
-        '--delta_times_dir', str(s2shores_paths.delta_times_dir_esa),
-        '--distoshore_file', f'{s2shores_paths.dis2shore_dir}/disToShore_30TXR_cropped.TIF',
-        '--product_type', 'S2',
-        '--nb_subtiles', '36',
-        '--roi_file', f'{s2shores_paths.roi_dir}/30TXR-ROI-cropped.shp',
-        '--limit_to_roi',
-        '--sequential'])
-
-    print(result.output)
     compare_files(reference_dir=f"{s2shores_paths.output_dir}/CI_tests/limitroi_s2_quick",
                   output_dir=s2shores_paths.output_dir)
 
@@ -231,20 +222,18 @@ def test_debug_mode_point_s2_quick(s2shores_paths: S2SHORESTestsPath) -> None:
         shutil.rmtree(debug_path)
     os.mkdir(debug_path)
 
-    runner = CliRunner()
+    bathy_process(
+        input_product=s2shores_paths.s2new_cropped,
+        product_type='S2',
+        output_dir=s2shores_paths.output_dir,
+        config_file=(s2shores_paths.config_dir/"config8"/"wave_bathy_inversion_config_quick.yaml"),
+        debug_file=(s2shores_paths.debug_dir/"debug_points_30TXR_notongrid_cropped.yaml"),
+        debug_path=(s2shores_paths.output_dir/"debug_mode_point_s2"),
+        distoshore_file=(s2shores_paths.dis2shore_dir/"disToShore_30TXR_cropped.TIF"),
+        delta_times_dir=s2shores_paths.delta_times_dir_esa,
+        nb_subtiles=36,
+    )
 
-    result = runner.invoke(process_command, [
-        '--input_product', str(s2shores_paths.s2new_cropped),
-        '--product_type', 'S2',
-        '--output_dir', str(s2shores_paths.output_dir),
-        '--config_file', f'{s2shores_paths.config_dir}/config8/wave_bathy_inversion_config_quick.yaml',
-        '--delta_times_dir', str(s2shores_paths.delta_times_dir_esa),
-        '--distoshore_file', f'{s2shores_paths.dis2shore_dir}/disToShore_30TXR_cropped.TIF',
-        '--nb_subtiles', '36',
-        '--debug_path', f'{s2shores_paths.output_dir}/debug_mode_point_s2',
-        '--debug_file', f'{s2shores_paths.debug_dir}/debug_points_30TXR_notongrid_cropped.yaml'])
-
-    print(result.output)
     compare_files(reference_dir=f"{s2shores_paths.output_dir}/CI_tests/debug_mode_point_s2_quick",
                   output_dir=s2shores_paths.output_dir,
                   debug_dir = f'{s2shores_paths.output_dir}/debug_mode_point_s2')
@@ -264,17 +253,16 @@ def test_debug_area_funwave_quick(s2shores_paths: S2SHORESTestsPath) -> None:
     os.mkdir(debug_path)
 
     unzip_file(s2shores_paths.funwave_cropped.with_suffix('.zip'))
-    runner = CliRunner()
 
-    result = runner.invoke(process_command, [
-        '--input_product', str(s2shores_paths.funwave_cropped),
-        '--product_type', 'geotiff',
-        '--output_dir', str(s2shores_paths.output_dir),
-        '--config_file', f'{s2shores_paths.config_dir}/config9/wave_bathy_inversion_config_quick.yaml',
-        '--debug_path', f'{s2shores_paths.output_dir}/debug_area_funwave',
-        '--debug_file', f'{s2shores_paths.debug_dir}/debug_area_funwave_cropped.yaml'])
+    bathy_process(
+        input_product=s2shores_paths.funwave_cropped,
+        product_type='geotiff',
+        output_dir=s2shores_paths.output_dir,
+        config_file=(s2shores_paths.config_dir/"config9"/"wave_bathy_inversion_config_quick.yaml"),
+        debug_file=(s2shores_paths.debug_dir/"debug_area_funwave_cropped.yaml"),
+        debug_path=(s2shores_paths.output_dir/"debug_area_funwave")
+    )
 
-    print(result.output)
     compare_files(reference_dir=f"{s2shores_paths.output_dir}/CI_tests/debug_area_funwave_quick",
                   output_dir=s2shores_paths.output_dir,
                   debug_dir = f'{s2shores_paths.output_dir}/debug_area_funwave')
@@ -290,19 +278,17 @@ def test_roi_profiling_s2_quick(s2shores_paths: S2SHORESTestsPath) -> None:
     """
     dis2shore_file = ("GMT_intermediate_coast_distance_01d_test_5000_cropped.nc")
 
-    runner = CliRunner()
+    bathy_process(
+        input_product=s2shores_paths.s2new_cropped,
+        product_type='S2',
+        output_dir=s2shores_paths.output_dir,
+        config_file=(s2shores_paths.config_dir/"config2"/"wave_bathy_inversion_config_quick.yaml"),
+        distoshore_file=(s2shores_paths.dis2shore_dir/dis2shore_file),
+        delta_times_dir=s2shores_paths.delta_times_dir_esa,
+        roi_file=(s2shores_paths.roi_dir/"30TXR-ROI-cropped.shp"),
+        nb_subtiles=36,
+        profiling=True
+    )
 
-    result = runner.invoke(process_command, [
-        '--input_product', str(s2shores_paths.s2new_cropped),
-        '--product_type', 'S2',
-        '--output_dir', str(s2shores_paths.output_dir),
-        '--config_file', f'{s2shores_paths.config_dir}/config2/wave_bathy_inversion_config_quick.yaml',
-        '--distoshore_file', f'{s2shores_paths.dis2shore_dir}/{dis2shore_file}',
-        '--delta_times_dir', str(s2shores_paths.delta_times_dir_esa),
-        '--roi_file', f'{s2shores_paths.roi_dir}/30TXR-ROI-cropped.shp',
-        '--nb_subtiles', '36',
-        '--profiling'])
-
-    print(result.output)
     compare_files(reference_dir=f"{s2shores_paths.output_dir}/CI_tests/roi_profiling_s2_quick",
                   output_dir=s2shores_paths.output_dir)
